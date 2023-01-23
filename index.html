@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>music game</title>
+  <style>
+    body {
+      text-align: center;
+    }
+
+    div,
+    iframe {
+      margin: 0 auto;
+    }
+
+    #notes {
+      width: 500px;
+      height: 700px;
+      border-width: 3px;
+      border-color: black;
+      border-style: solid;
+    }
+
+    textarea {
+      width: 500px;
+      height: 20em;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ようつべ -->
+  <div id="youtubeEmbed"></div>
+  <!-- ノーツ表示 -->
+  <br>
+  <svg id="notes" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="600" width="500" height="20" fill="gray" id="checkLine"></rect>
+    <text id="score" x="50%" y="10%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
+    <text id="actuarys" x="50%" y="15%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
+    <text id="info" x="50%" y="75%" font-family="Verdana" font-size="35" text-anchor="middle"></text>
+  </svg>
+  <!-- コンフィグ -->
+  <br>
+  速度:<input type="range" min=1 max=50 id="speed" step=1 value=10><span id="speedValue">10px</span>
+  キーA:<input id="keyboardA" type="text" placeholder="クリックしてキーを入力" value="Space">
+  <br>
+  オフセット:<input type="range" min=-20 max=200 id="timing" step=1 value=0><span id="timingValue">0</span>
+  キーB:<input id="keyboardB" type="text" placeholder="クリックしてキーを入力">
+  <br>
+  時間:<span id="videoTime">0/0</span>
+  <!-- ロード -->
+  <br>
+  <input type="button" id="jsonEdit" value="Json Data Load">
+  <!-- ノーツデータ -->
+  <br>
+  <textarea id="jsonData" placeholder="Please input your code"></textarea>
+  <!-- 操作方法 -->
+  <div>
+    Play:<br>
+    1. キーを設定<br>
+    2. Jsonを入力<br>
+    3. ロード<br>
+    4. 設定したキーでスタート タイミングよく押そう!<br>
+    (fastは打つのが早すぎ オフセットを大きく)<br>
+    <br>
+    Edit:<br>
+    1. URLに?edit=動画IDを入力して開く<br>
+    2. スペースキーで入力<br>
+    3. ボタンで出力 共有してみんなで遊ぼう!<br>
+    (動画が表示されなかったらその動画では曲が作れないよ!)<br>
+  </div>
+</body>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  var elffset = document.getElementById("notes").children.length // データ用svgのoffset
+  var data // jsonparse用
+  var isLoaded = false // jsonロード
+  var isEdit = false // 編集モード
+  var movieID = "" //動画ID(編集用)
+  var notesTiming = [] //ノーツタイミング(編集用)
+  var player; // youtubeEmbed
+  const searchParams = new URLSearchParams(window.location.search)
+  var combo = 0
+  var maxCombo = 0
+  var score = 0
+  var hits = [0, 0, 0, 0] // Great Good Bad Miss
+  var scene = "waiting"
+  var svg = document.getElementById("notes")
+  var speed = 10
+  var timingOffset = 0
+  var keyCodeA = "Space"
+  var keyCodeB = "Space"
+
+  // editモード
+  if (searchParams.has('edit')) {
+    movieID = searchParams.get('edit')
+    console.log("youtube load(edit mode)")
+
+    document.getElementById("jsonEdit").value = "Save Your Code"
+    document.getElementById("jsonData").placeholder = "Output Your Notes Code."
+
+    setTimeout(() => {
+      player = new YT.Player('youtubeEmbed', {
+        height: '270',
+        width: '480',
+        videoId: movieID,
+      });
+      isLoaded = true
+      isEdit = true
+    }, 500);
+  }
+
+  // json読み込み
+  document.getElementById("jsonEdit").addEventListener("click", function () {
+    console.log("jsonEdit Click")
+    if (isEdit) {
+      if (!isLoaded) return;
+      console.log("Export")
+
+      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
+    } else {
+      if (isLoaded) return;
+      console.log("Inport")
+
+      data = JSON.parse(document.getElementById("jsonData").value)
+      console.log(data.id)
+      console.log("load")
+      if (data == undefined) return
+      console.log("API load")
+
+      // youtube Embed 読み込み
+      console.log("youtube load(play mode)")
+      player = new YT.Player('youtubeEmbed', {
+        height: '270',
+        width: '480',
+        videoId: data.id,
+      });
+
+      // info
+      document.getElementById("score").textContent = `${keyCodeA},${keyCodeB} to Start`;
+      // ロック
+      document.getElementById("speed").setAttribute("disabled", "true")
+      document.getElementById("jsonData").setAttribute("disabled", "true")
+      document.getElementById("jsonEdit").setAttribute("disabled", "true")
+      document.getElementById("keyboardA").setAttribute("disabled", "true")
+      document.getElementById("keyboardB").setAttribute("disabled", "true")
+      isLoaded = true
+    }
+  })
+
+  // スピード
+  document.getElementById("speed").addEventListener("change", speedUpDate)
+  speedUpDate()
+  // タイミング
+  document.getElementById("timing").addEventListener("change", timingUpDate)
+  timingUpDate()
+  // キーボード
+  document.getElementById("keyboardA").addEventListener("keydown", function (e) {
+    if (e.keyCode >= 112 && e.keyCode <= 123) return
+
+    e.preventDefault();
+    document.getElementById("keyboardA").value = `${e.code}(${e.keyCode})`;
+    keyCodeA = e.code;
+  })
+  document.getElementById("keyboardB").addEventListener("keydown", function (e) {
+    if (e.keyCode >= 112 && e.keyCode <= 123) return
+
+    e.preventDefault();
+    document.getElementById("keyboardB").value = `${e.code}(${e.keyCode})`;
+    keyCodeB = e.code;
+  })
+
+  // 操作
+  document.addEventListener('keydown', function (e) {
+    // キーチェック
+    if (!(e.code == keyCodeA || e.code == keyCodeB)) return;
+
+    // キー 無効化
+    e.preventDefault();
+    scrollTo(0, window.pageYOffset + svg.getBoundingClientRect().top);
+
+    // キーチェック用
+    switch (scene) {
+      case "waiting":
+        if (!isLoaded) return;
+
+        document.getElementById("info").textContent = "3"
+        setTimeout(function () {
+          document.getElementById("info").textContent = "2"
+        }, 1000)
+        setTimeout(function () {
+          document.getElementById("info").textContent = "1"
+        }, 2000)
+        setTimeout(function () {
+          document.getElementById("info").textContent = ""
+          player.seekTo(0, true)
+          player.playVideo()
+          console.log("place notes")
+          for (var i = 0; i < data.timing.length; i++) {
+            var y = data.timing[i] * (speed * 1 / 0.02) * -1 + 500 // -(目標時間 * 移動速度) + バー座標
+            svg.innerHTML += `<rect id="note" x="0" y="0" width="500" height="20" fill="blue" id="line"></rect>`
+            document.getElementById("notes").lastElementChild.y.baseVal.value = y
+          }
+          document.getElementById("score").textContent = ""
+        }, 3000)
+        if (isEdit) {
+          document.getElementById("score").textContent = "edit"
+          scene = "edit"
+        } else {
+          document.getElementById("score").textContent = "Please Wait..."
+          scene = "play"
+        }
+
+        return
+      case "play":
+        // 数値だし
+        if (svg.children.length < elffset) return
+        var timelag = document.getElementById("checkLine").y.baseVal.value - document.getElementById("note").y.baseVal.value
+        var timing = Math.abs(timelag)
+        var sign = Math.sign(timelag)
+
+        // スコア計算
+        if (timing > 120) { // ある程度遠いのは放置
+          return
+        } else if (timing < 30) { // Great
+          hits[0]++
+          scoreUpDate("Great", 300, sign)
+        } else if (timing < 60) { // Good
+          hits[1]++
+          scoreUpDate("Good", 100, sign)
+        } else if (timing < 90) { // Bad
+          hits[2]++
+          scoreUpDate("Bad", 50, sign)
+        } else {
+          hits[3]++
+          scoreUpDate("Miss", 0, sign)
+        }
+        svg.children[elffset].remove()
+
+        return
+      case "edit":
+        if (player.getCurrentTime() < 1.00) return;
+
+        svg.innerHTML += `<rect x="0" y="500" width="500" height="20" fill="blue" id="line"></rect>`
+        var time = Math.round(player.getCurrentTime() * 100) / 100;
+        notesTiming.push(time)
+
+        return;
+    }
+  });
+
+  // ノーツ
+  setInterval(() => {
+    var lines = svg.children
+    for (var i = elffset; i < lines.length; i++) {
+      if (isEdit) {
+        lines[i].y.baseVal.value = lines[i].y.baseVal.value - speed
+        if (lines[i].y.baseVal.value < 0) {
+          lines[i].remove()
+        }
+      } else {
+        lines[i].y.baseVal.value = lines[i].y.baseVal.value + speed
+        if (lines[i].y.baseVal.value > 600 - timingOffset + 100) {
+          hits[3]++
+          scoreUpDate("Miss", 0, 0)
+          lines[i].setAttribute("fill", "red")
+          lines[i].removeAttribute("id")
+        }
+        if (lines[i].y.baseVal.value > 700) {
+          lines[i].remove()
+        }
+      }
+    }
+
+    // 動画時間表示
+    try {
+      document.getElementById("videoTime").textContent = Math.round(player.getCurrentTime() * 100) / 100 + "/" + Math.round(player.getDuration() * 100) / 100 + "[sec]";
+    } catch (e) { }
+
+  }, 20);
+
+
+
+  // その他
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  function scoreUpDate(text, add, sign) {
+    var add_text = ""
+    if (add > 0) {
+      add_text = `+${add} `
+    }
+
+    if (sign == 1) {// 早すぎ
+      document.getElementById("info").textContent = `${text} ${add_text}(fast)`
+    } else if (sign == 0) {
+      document.getElementById("info").textContent = `${text} ${add_text}`
+    } else {// 遅すぎ
+      document.getElementById("info").textContent = `${text} ${add_text}(late)`
+    }
+
+    if (add == 0) {
+      combo = 0
+    } else {
+      combo++
+      if (combo > maxCombo) maxCombo = combo;
+      score += Math.round(add * Math.sqrt(combo))
+    }
+
+    document.getElementById("score").textContent = `Score:${score.toLocaleString()} Combo:${combo} Max:${maxCombo}`
+
+    // スコア更新
+    var acc = (hits[0] * 100 + hits[1] * 75 + hits[2] * 50) / (hits[0] + hits[1] + hits[2] + hits[3])
+    acc = Math.round(acc * 100) / 100
+    if (isNaN(acc)) {
+      acc = 0
+    }
+    document.getElementById("actuarys").textContent = `Great:${hits[0]} Good:${hits[1]} Bad:${hits[2]} Miss:${hits[3]} Acc:${acc}%`
+
+  }
+  function speedUpDate() {
+    speed = parseInt(document.getElementById("speed").value)
+    timingOffset = 500 / (speed * 1 / 0.005)
+    document.getElementById("speedValue").innerText = speed + "px"
+  }
+  function timingUpDate() {
+    timingOffset = parseInt(document.getElementById("timing").value)
+    document.getElementById("checkLine").y.baseVal.value = 600 - timingOffset
+    document.getElementById("timingValue").innerText = timingOffset
+  }
+
+</script>
+
+</html>
