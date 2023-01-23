@@ -5,71 +5,113 @@
   <meta charset="utf-8">
   <title>music game</title>
   <style>
-    body {
-      text-align: center;
+    .main {
+      display: flex;
+      justify-content: center;
+      position: relative;
     }
 
-    div,
-    iframe {
-      margin: 0 auto;
-    }
-
-    #notes {
-      width: 500px;
-      height: 700px;
+    .notesBox {
+      width: 75px;
       border-width: 3px;
       border-color: black;
       border-style: solid;
     }
 
-    textarea {
-      width: 500px;
-      height: 20em;
+    .contents {
+      display: block;
+    }
+
+    .youtube {
+      height: 180px;
+      width: 320px;
+      background-color: lightgray;
+      text-align: center;
+      display: block;
+    }
+
+    .config {
+      display: inline-block;
+      width: 5ch;
+    }
+
+    .keyboard {
+      width: 10ch;
+    }
+
+    .toRight {
+      float: right;
+    }
+
+    .jsonInput {
+      width: calc(320px - 6px);
+      height: 10em;
+    }
+
+    .score {
+      width: calc(320px - 6px);
+      height: 5em;
+    }
+
+    .help {
+      width: 320px;
+      overflow-x: scroll;
+      white-space: nowrap;
+    }
+
+    .source {
+      text-align: center;
+      justify-content: center;
+
     }
   </style>
 </head>
 
 <body>
-  <!-- ようつべ -->
-  <div id="youtubeEmbed"></div>
-  <!-- ノーツ表示 -->
+  <div class="main">
+    <!-- ノーツ表示 -->
+    <svg class="notesBox" id="notes" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="600" width="100%" height="20" fill="gray" id="checkLine"></rect>
+      <text id="info" x="50%" y="75%" font-family="Verdana" font-size="10" text-anchor="middle"></text>
+    </svg>
+    <div class="contents">
+      <!-- ようつべ -->
+      <div class="youtube" id="youtubeEmbed"> Json Load Waiting</div>
+      <!-- コンフィグ -->
+      <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10><span
+        id="speedValue">10px</span><br>
+      <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0><span
+        id="timingValue">0</span><br>
+      <span class="config">key</span>:<input class="keyboard" id="keyboardA" type="text" value="Space"><input
+        class="keyboard" id="keyboardB" type="text"><br>
+      <span class="config">time</span>:<span id="videoTime">0/0</span>
+      <!-- ロード -->
+      <input class="toRight" type="button" id="jsonEdit" value="Json Data Load"><br>
+      <!-- ノーツデータ -->
+      <textarea class="jsonInput" id="jsonData" placeholder="Please input your code">{"id":"Zr4HV8z-Jbc"}</textarea><br>
+      <!-- スコア -->
+      <textarea class="score" id="score" readonly></textarea><br>
+      <!-- ヘルプ -->
+      <div class="help">
+        Play:<br>
+        1. キーを設定<br>
+        2. Jsonを入力<br>
+        3. ロード<br>
+        4. 設定したキーでスタート タイミングよく押そう!<br>
+        (fastは打つのが早すぎ オフセットを大きく)<br>
+        <br>
+        Edit:<br>
+        1. URLに?edit=動画IDを入力して開く<br>
+        2. スペースキーで入力<br>
+        3. ボタンで出力 共有してみんなで遊ぼう!<br>
+        (動画が表示されなかったらその動画では曲が作れないよ!)<br>
+      </div>
+    </div>
+  </div>
   <br>
-  <svg id="notes" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="600" width="500" height="20" fill="gray" id="checkLine"></rect>
-    <text id="score" x="50%" y="10%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
-    <text id="actuarys" x="50%" y="15%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
-    <text id="info" x="50%" y="75%" font-family="Verdana" font-size="35" text-anchor="middle"></text>
-  </svg>
-  <!-- コンフィグ -->
-  <br>
-  速度:<input type="range" min=1 max=50 id="speed" step=1 value=10><span id="speedValue">10px</span>
-  キーA:<input id="keyboardA" type="text" placeholder="クリックしてキーを入力" value="Space">
-  <br>
-  オフセット:<input type="range" min=-20 max=200 id="timing" step=1 value=0><span id="timingValue">0</span>
-  キーB:<input id="keyboardB" type="text" placeholder="クリックしてキーを入力">
-  <br>
-  時間:<span id="videoTime">0/0</span>
-  <!-- ロード -->
-  <br>
-  <input type="button" id="jsonEdit" value="Json Data Load">
-  <!-- ノーツデータ -->
-  <br>
-  <textarea id="jsonData" placeholder="Please input your code"></textarea>
-  <!-- 操作方法 -->
-  <div>
-    Play:<br>
-    1. キーを設定<br>
-    2. Jsonを入力<br>
-    3. ロード<br>
-    4. 設定したキーでスタート タイミングよく押そう!<br>
-    (fastは打つのが早すぎ オフセットを大きく)<br>
-    <br>
-    Edit:<br>
-    1. URLに?edit=動画IDを入力して開く<br>
-    2. スペースキーで入力<br>
-    3. ボタンで出力 共有してみんなで遊ぼう!<br>
-    (動画が表示されなかったらその動画では曲が作れないよ!)<br>
-    ソースコード,曲データ: <a href="https://github.com/atomu21263/music-game">https://github.com/atomu21263/music-game</href>
+  <div class="source">
+    ソースコード,曲データ:<br>
+    <a href="https://github.com/atomu21263/music-game">https://github.com/atomu21263/music-game</href>
   </div>
 </body>
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -87,6 +129,7 @@
   var score = 0
   var hits = [0, 0, 0, 0] // Great Good Bad Miss
   var scene = "waiting"
+  var isPlace = false
   var svg = document.getElementById("notes")
   var speed = 10
   var timingOffset = 0
@@ -200,10 +243,11 @@
           console.log("place notes")
           for (var i = 0; i < data.timing.length; i++) {
             var y = data.timing[i] * (speed * 1 / 0.02) * -1 + 500 // -(目標時間 * 移動速度) + バー座標
-            svg.innerHTML += `<rect id="note" x="0" y="0" width="500" height="20" fill="blue" id="line"></rect>`
+            svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
             document.getElementById("notes").lastElementChild.y.baseVal.value = y
           }
           document.getElementById("score").textContent = ""
+          isPlace = true
         }, 3000)
         if (isEdit) {
           document.getElementById("score").textContent = "edit"
@@ -243,7 +287,7 @@
       case "edit":
         if (player.getCurrentTime() < 1.00) return;
 
-        svg.innerHTML += `<rect x="0" y="500" width="500" height="20" fill="blue" id="line"></rect>`
+        svg.innerHTML += `<rect x="0" y="500" width="100%" height="20" fill="blue" id="line"></rect>`
         var time = Math.round(player.getCurrentTime() * 100) / 100;
         notesTiming.push(time)
 
@@ -255,12 +299,12 @@
   setInterval(() => {
     var lines = svg.children
     for (var i = elffset; i < lines.length; i++) {
-      if (isEdit) {
+      if (isEdit) { // editモード
         lines[i].y.baseVal.value = lines[i].y.baseVal.value - speed
         if (lines[i].y.baseVal.value < 0) {
           lines[i].remove()
         }
-      } else {
+      } else if (isPlace) { // 設置済み
         lines[i].y.baseVal.value = lines[i].y.baseVal.value + speed
         if (lines[i].y.baseVal.value > 600 - timingOffset + 100) {
           hits[3]++
@@ -307,7 +351,6 @@
       score += Math.round(add * Math.sqrt(combo))
     }
 
-    document.getElementById("score").textContent = `Score:${score.toLocaleString()} Combo:${combo} Max:${maxCombo}`
 
     // スコア更新
     var acc = (hits[0] * 100 + hits[1] * 75 + hits[2] * 50) / (hits[0] + hits[1] + hits[2] + hits[3])
@@ -315,7 +358,7 @@
     if (isNaN(acc)) {
       acc = 0
     }
-    document.getElementById("actuarys").textContent = `Great:${hits[0]} Good:${hits[1]} Bad:${hits[2]} Miss:${hits[3]} Acc:${acc}%`
+    document.getElementById("score").value = `Score:${score.toLocaleString()}\nCombo:${combo} Max:${maxCombo}\nGreat:${hits[0]} Good:${hits[1]} Bad:${hits[2]} Miss:${hits[3]} Acc:${acc}%`
 
   }
   function speedUpDate() {
