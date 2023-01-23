@@ -88,7 +88,7 @@
       <!-- ロード -->
       <input class="toRight" type="button" id="jsonEdit" value="Json Data Load"><br>
       <!-- ノーツデータ -->
-      <textarea class="jsonInput" id="jsonData" placeholder="Please input your code">{"id":"Zr4HV8z-Jbc"}</textarea><br>
+      <textarea class="jsonInput" id="jsonData" placeholder="Please input your code"></textarea><br>
       <!-- スコア -->
       <textarea class="score" id="score" readonly></textarea><br>
       <!-- ヘルプ -->
@@ -150,6 +150,10 @@
         width: '480',
         videoId: movieID,
       });
+      document.getElementById("speed").setAttribute("disabled", "true")
+      document.getElementById("offset").setAttribute("disabled", "true")
+      document.getElementById("score").style.display = "hidden"
+
       isLoaded = true
       isEdit = true
     }, 500);
