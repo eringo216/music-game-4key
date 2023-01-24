@@ -378,6 +378,14 @@
       case "waiting":
         if (!isLoaded) return; // 読み込みチェック
 
+        // ノーツ配置
+        for (var i = 0; i < data.timing.length; i++) {
+          var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
+          svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
+          document.getElementById("notes").lastElementChild.y.baseVal.value = y
+        }
+        isPlace = true
+        console.log("Notes Placed")
         // 3
         document.getElementById("info").textContent = "3"
         // 2
@@ -394,15 +402,6 @@
           // 念のためスクロール
           player.seekTo(0, true)
           player.playVideo()
-
-          // ノーツ配置
-          for (var i = 0; i < data.timing.length; i++) {
-            var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
-            svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
-            document.getElementById("notes").lastElementChild.y.baseVal.value = y
-          }
-          isPlace = true
-          console.log("Notes Placed")
 
           document.getElementById("score").textContent = ""
         }, 3000)
@@ -447,7 +446,8 @@
         return;
       // 編集中
       case "edit":
-        if (player.getCurrentTime() < 1.00) return;
+        if (player.getCurrentTime() < 0.50) return;
+        if (!isPlayVideo) return;
 
         // 追加
         svg.innerHTML += `<rect x="0" y="${checkLine}" width="100%" height="20" fill="blue" id="line"></rect>`
