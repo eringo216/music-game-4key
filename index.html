@@ -465,6 +465,7 @@
         document.getElementById("sound").play()
         // 数値だし
         if (svg.children.length < elffset) return;
+        if (document.getElementById("note") == undefined) return;
         var timelag = document.getElementById("checkLine").y.baseVal.value - document.getElementById("note").y.baseVal.value
         var timing = Math.abs(timelag)
         var sign = Math.sign(timelag)
