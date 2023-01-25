@@ -41,7 +41,7 @@
 
     .config {
       display: inline-block;
-      width: 5ch;
+      width: 7ch;
     }
 
     .keyboard {
@@ -90,18 +90,29 @@
       <rect x="0" y="600" width="100%" height="20" fill="gray" id="checkLine"></rect>
       <text id="info" x="50%" y="75%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
     </svg>
+    <audio id="sound" src="./taiko.mp3"></audio> <!-- Download from https://soundeffect-lab.info/sound/ -->
     <div class="contents">
       <!-- ようつべ -->
       <div class="youtube">
         <div id="youtubeEmbed"> Json Load Waiting</div>
       </div>
       <!-- コンフィグ -->
-      <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10><span
-        id="speedValue">10px</span><br>
-      <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0><span
-        id="timingValue">0</span><br>
-      <span class="config">key</span>:<input class="keyboard" id="keyboardA" type="text" value="Space"><input
-        class="keyboard" id="keyboardB" type="text"><br>
+      <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10>
+      <span id="speedValue">10px</span><br>
+
+      <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0>
+      <span id="timingValue">0</span><br>
+
+      <span class="config">volume</span>:<br>
+      <span class="config">[music]</span> <input type="range" min=0 max=100 id="music" step=1 value=100>
+      <span id="musicValue">100</span><br>
+      <span class="config">[effect]</span> <input type="range" min=0 max=100 id="effect" step=1 value=100>
+      <span id="effectValue">100</span><br>
+
+      <span class="config">key</span>:
+      <input class="keyboard" id="keyboardA" type="text" value="Space(32)">
+      <input class="keyboard" id="keyboardB" type="text"><br>
+
       <span class="config">time</span>:<span id="videoTime">0/0</span>
       <!-- ロード -->
       <input class="toRight" type="button" id="jsonEdit" value="Json Data Load"><br>
@@ -136,27 +147,40 @@
 </body>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-  var elffset = document.getElementById("notes").children.length // データ用svgのoffset
-  var data // jsonparse用
-  var isLoaded = false // jsonロード
-  var isEdit = false // 編集モード
-  var movieID = "" //動画ID(編集用)
-  var notesTiming = [] //ノーツタイミング(編集用)
-  var player; // youtubeEmbed
+  // Edit関連
   const searchParams = new URLSearchParams(window.location.search)
+  var isEdit = false
+  var movieID = "" //動画ID
+  var notesTiming = [] //ノーツタイミング
+
+  // Play関連
+  //// 前処理
+  var data // jsonparse用
+  var isJsonLoaded = false // jsonロード
+  //// 設定
+  var keyCodeA = "Space"
+  var keyCodeB = "Space"
+  var speed = 10
+  //// ステータス
+  var isPlace = false
   var combo = 0
   var maxCombo = 0
   var score = 0
   var hits = [0, 0, 0, 0] // Great Good Bad Miss
-  var scene = "waiting"
-  var isPlace = false
-  var isPlayVideo = false
-  var svg = document.getElementById("notes")
-  var speed = 10
+  //// 召喚用
   var defaultCheckLine = document.getElementById("checkLine").y.baseVal.value
   var checkLine = defaultCheckLine
-  var keyCodeA = "Space"
-  var keyCodeB = "Space"
+
+  // 共通
+  //// 制御
+  var elffset = document.getElementById("notes").children.length // データ用svgのoffset
+  var svg = document.getElementById("notes")
+  //// 動画
+  var player; // youtubeEmbed
+  var isVideoLoaded = false
+  var isPlayVideo = false
+  //// ゲームステータス
+  var scene = "waiting"
 
   // Editモード
   if (searchParams.has('edit')) {
@@ -187,14 +211,13 @@
 
     // editモード
     if (isEdit) {
-      if (!isLoaded) return;
       document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
       console.log("Json Export")
       return;
     }
 
 
-    if (isLoaded) return;
+    if (isJsonLoaded) return;
     console.log("Json Import")
 
     data = JSON.parse(document.getElementById("jsonData").value)
@@ -215,12 +238,11 @@
     console.log("Config Lock")
   })
 
-  // スピード
-  document.getElementById("speed").addEventListener("change", speedUpDate)
-  speedUpDate()
-  // タイミング
-  document.getElementById("timing").addEventListener("change", timingUpDate)
-  timingUpDate()
+  // コンフィグ
+  document.getElementById("speed").addEventListener("input", speedUpDate); speedUpDate()
+  document.getElementById("timing").addEventListener("input", timingUpDate); timingUpDate()
+  document.getElementById("music").addEventListener("input", musicUpDate); musicUpDate()
+  document.getElementById("effect").addEventListener("input", effectUpDate); effectUpDate()
 
   // キー設定変更
   document.getElementById("keyboardA").addEventListener("keydown", function (e) {
@@ -248,19 +270,17 @@
 
     // キー 無効化
     e.preventDefault();
-    scrollTo(0, window.pageYOffset + svg.getBoundingClientRect().top);
 
     // 処理実行
-    game()
+    gameSystem()
   });
   //// タッチ
   document.addEventListener("touchstart", function (e) {
     // キー 無効化
     e.preventDefault();
-    scrollTo(0, window.pageYOffset + svg.getBoundingClientRect().top);
 
     // 処理実行
-    game()
+    gameSystem()
   })
 
   // ノーツの移動
@@ -313,7 +333,7 @@
       videoId: id,
       events: {
         'onReady': function () {
-          isLoaded = true
+          isVideoLoaded = true
           console.log(`Youtube Load (${mode})`)
         },
         'onStateChange': function (event) {
@@ -323,7 +343,10 @@
             isPlayVideo = false
           }
         },
-      }
+        'onError': function (e) {
+          document.getElementById("hits").textContent = e
+        },
+      },
     });
   }
   //// スコア更新
@@ -370,13 +393,30 @@
     checkLine = document.getElementById("checkLine").y.baseVal.value = 600 - timingOffset
     document.getElementById("timingValue").innerText = timingOffset
   }
+  //// 音楽Volume更新
+  function musicUpDate() {
+    var musicVolume = parseInt(document.getElementById("music").value)
+    if (isVideoLoaded) {
+      player.setVolume(musicVolume)
+    } else {
+      musicVolume = 100
+      document.getElementById("music").value = musicVolume
+    }
+    document.getElementById("musicValue").innerText = musicVolume
+  }
+  //// 効果音Volume更新
+  function effectUpDate() {
+    var effectVolume = parseInt(document.getElementById("effect").value)
+    document.getElementById("sound").volume = effectVolume /100
+    document.getElementById("effectValue").innerText = effectVolume
+  }
   //// シーンごとに変更
-  function game() {
+  function gameSystem() {
     // シーンで挙動変更
     switch (scene) {
       // 待機中
       case "waiting":
-        if (!isLoaded) return; // 読み込みチェック
+        if (!isVideoLoaded) return; // 読み込みチェック
 
         // ノーツ配置
         if (!isEdit) {
@@ -404,7 +444,7 @@
           // 念のためスクロール
           player.seekTo(0, true)
           player.playVideo()
-
+          
           document.getElementById("score").textContent = ""
         }, 3000)
 
@@ -420,6 +460,9 @@
         return;
       // プレイ中
       case "play":
+        document.getElementById("sound").pause()
+        document.getElementById("sound").currentTime = 0
+        document.getElementById("sound").play()
         // 数値だし
         if (svg.children.length < elffset) return;
         var timelag = document.getElementById("checkLine").y.baseVal.value - document.getElementById("note").y.baseVal.value
