@@ -385,9 +385,9 @@
             svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
             document.getElementById("notes").lastElementChild.y.baseVal.value = y
           }
+          isPlace = true
+          console.log("Notes Placed")
         }
-        isPlace = true
-        console.log("Notes Placed")
         // 3
         document.getElementById("info").textContent = "3"
         // 2
