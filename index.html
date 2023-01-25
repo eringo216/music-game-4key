@@ -379,10 +379,12 @@
         if (!isLoaded) return; // 読み込みチェック
 
         // ノーツ配置
-        for (var i = 0; i < data.timing.length; i++) {
-          var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
-          svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
-          document.getElementById("notes").lastElementChild.y.baseVal.value = y
+        if (!isEdit) {
+          for (var i = 0; i < data.timing.length; i++) {
+            var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
+            svg.innerHTML += `<rect id="note" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
+            document.getElementById("notes").lastElementChild.y.baseVal.value = y
+          }
         }
         isPlace = true
         console.log("Notes Placed")
