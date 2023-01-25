@@ -65,7 +65,7 @@
     .hits {
       width: 100%;
       display: inline-block;
-      background-color: gray;
+      background-color: lightgray;
       text-align: center;
       font-size: 200%;
     }
@@ -166,7 +166,7 @@
   var combo = 0
   var maxCombo = 0
   var score = 0
-  var hits = [0, 0, 0, 0] // Great Good Bad Miss
+  var hits = [0, 0, 0, 0, 0] // Perfect Great Good Bad Miss
   //// 召喚用
   var defaultCheckLine = document.getElementById("checkLine").y.baseVal.value
   var checkLine = defaultCheckLine
@@ -374,12 +374,10 @@
 
 
     // スコア更新
-    var acc = (hits[0] * 100 + hits[1] * 75 + hits[2] * 50) / (hits[0] + hits[1] + hits[2] + hits[3])
+    var acc = (hits[0] * 100 + hits[1] * 100 + hits[2] * 75 + hits[3] * 50) / (hits[0] + hits[1] + hits[2] + hits[3] + hits[4])
     acc = Math.round(acc * 100) / 100
-    if (isNaN(acc)) {
-      acc = 0
-    }
-    document.getElementById("score").value = `Score:${score.toLocaleString()}\nCombo:${combo} Max:${maxCombo}\nGreat:${hits[0]} Good:${hits[1]} Bad:${hits[2]} Miss:${hits[3]} Acc:${acc}%`
+    if (isNaN(acc)) acc = 0
+    document.getElementById("score").value = `Score:${score.toLocaleString()}\nCombo:${combo} Max:${maxCombo}\nPerfect:${hits[0]} Great:${hits[1]} Good:${hits[2]} Bad:${hits[3]} Miss:${hits[4]} Acc:${acc}%`
 
   }
   //// スピード更新
@@ -407,7 +405,7 @@
   //// 効果音Volume更新
   function effectUpDate() {
     var effectVolume = parseInt(document.getElementById("effect").value)
-    document.getElementById("sound").volume = effectVolume /100
+    document.getElementById("sound").volume = effectVolume / 100
     document.getElementById("effectValue").innerText = effectVolume
   }
   //// シーンごとに変更
@@ -444,8 +442,6 @@
           // 念のためスクロール
           player.seekTo(0, true)
           player.playVideo()
-          
-          document.getElementById("score").textContent = ""
         }, 3000)
 
         // モードでテキストを変更
@@ -471,17 +467,20 @@
         var sign = Math.sign(timelag)
 
         // スコア計算
-        if (timing < 30) { // Great
+        if (timing == 0) { // Perfect
           hits[0]++
+          scoreUpDate("Perfect", 500, sign)
+        } else if (timing < 30) { // Great
+          hits[1]++
           scoreUpDate("Great", 300, sign)
         } else if (timing < 60) { // Good
-          hits[1]++
+          hits[2]++
           scoreUpDate("Good", 100, sign)
         } else if (timing < 90) { // Bad
-          hits[2]++
+          hits[3]++
           scoreUpDate("Bad", 50, sign)
         } else if (timing < 120) { // Miss
-          hits[3]++
+          hits[4]++
           scoreUpDate("Miss", 0, sign)
         } else { // その他除外
           return;
