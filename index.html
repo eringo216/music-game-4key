@@ -550,6 +550,7 @@
       // 編集中
       case "edit":
         if (player.getCurrentTime() < 0.50) return;
+        if (player.getCurrentTime() > player.getDuration() - 0.5) return;
         if (!isPlayVideo) return;
 
         // 追加
