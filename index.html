@@ -426,6 +426,11 @@
       document.getElementById("hits").textContent = "none"
       // シーン
       scene = "waiting"
+      // ノーツ削除
+      var lines = svg.children
+      for (var i = elffset; i < lines.length; i++) {
+        lines[i].remove()
+      }
     }
   }
   //// スコア更新
