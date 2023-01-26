@@ -496,7 +496,7 @@
     } else {
       // 動画停止
       videoInfo("pause")
-      videoUpdate("seek", 0)
+      videoInfo("seek", 0)
       // シーン
       scene = "waiting"
       // jsonにする
@@ -640,7 +640,9 @@
           hits[3]++
           scoreUpDate("Bad", 50, sign)
         } else if (timing < 12 * speed) { // Miss
+          console.log(hits)
           hits[4]++
+          console.log(hits)
           scoreUpDate("Miss", 0, sign)
         } else { // その他除外
           return;
