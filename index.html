@@ -662,7 +662,7 @@
         if (!isPlayVideo) return;
 
         // 追加
-        svg.innerHTML += `<rect x="0" y="${checkLine}" width="100%" height="20" fill="blue" id="line"></rect>`
+        svg.innerHTML += `<rect class="notes" x="0" y="${checkLine}" width="100%" height="20" fill="blue" id="line"></rect>`
         var time = videoInfo("getNowTime")
         notesTiming.push(time)
         console.log(`Append Notes: ${time}`)
