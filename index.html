@@ -387,7 +387,7 @@
         lines[i].y.baseVal.value = lines[i].y.baseVal.value + speed
         // checkline越えは赤くする
         if (lines[i].y.baseVal.value > checkLine + 100) {
-          hits[3]++
+          hits[4]++
           scoreUpDate("Miss", 0, 0)
           lines[i].setAttribute("fill", "red")
           lines[i].removeAttribute("id")
@@ -489,6 +489,8 @@
       maxCombo = 0
       score = 0
       hits = [0, 0, 0, 0, 0]
+      // document.getElementById("score").value = ""
+      // document.getElementById("hits").textContent = "none"
       // シーン
       scene = "waiting"
     } else {
