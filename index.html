@@ -31,6 +31,7 @@
       aspect-ratio: 16 / 9 !important;
       width: 100%;
       order: 1;
+      position: relative;
     }
 
     .youtube * {
@@ -39,6 +40,13 @@
       background-color: lightgray;
       text-align: center;
       display: block;
+    }
+
+    .youtubeLock {
+      background-color: red;
+      position: absolute;
+      top: 0;
+      opacity: 0;
     }
 
     .configs {
@@ -99,6 +107,9 @@
         flex-flow: column;
       }
 
+      .youtubeLock {
+        display: none;
+      }
       .notesBox {
         position: relative;
         top: -200px;
@@ -147,6 +158,7 @@
       <!-- ようつべ -->
       <div class="youtube">
         <div id="youtubeEmbed"> Json Load Waiting</div>
+        <div class="youtubeLock"></div>
       </div>
       <span class="configs">
         <!-- コンフィグ -->
