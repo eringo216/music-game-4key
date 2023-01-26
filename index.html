@@ -426,11 +426,15 @@
       document.getElementById("hits").textContent = "none"
       // シーン
       scene = "waiting"
-      // ノーツ削除
-      var lines = svg.children
-      for (var i = elffset; i < lines.length; i++) {
-        lines[i].remove()
-      }
+    } else {
+      // jsonにする
+      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
+      console.log("Json Export")
+    }
+    // ノーツ削除
+    var lines = svg.children
+    for (var i = elffset; i < lines.length; i++) {
+      lines[i].remove()
     }
   }
   //// スコア更新
