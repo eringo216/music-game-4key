@@ -483,9 +483,12 @@
       document.getElementById("speed").removeAttribute("disabled")
       document.getElementById("jsonData").removeAttribute("disabled")
       document.getElementById("jsonEdit").removeAttribute("disabled")
-      // score
-      document.getElementById("score").value = ""
-      document.getElementById("hits").textContent = "none"
+      // // score
+      isPlace = false
+      combo = 0
+      maxCombo = 0
+      score = 0
+      hits = [0, 0, 0, 0, 0]
       // シーン
       scene = "waiting"
     } else {
@@ -625,7 +628,7 @@
         if (timing == 0) { // Perfect
           hits[0]++
           scoreUpDate("Perfect", 500, sign)
-        } else if (timing < 3* speed) { // Great
+        } else if (timing < 3 * speed) { // Great
           hits[1]++
           scoreUpDate("Great", 300, sign)
         } else if (timing < 6 * speed) { // Good
