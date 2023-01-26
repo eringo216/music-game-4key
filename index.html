@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>music game</title>
   <style>
     .main {
@@ -29,6 +30,7 @@
     .youtube {
       aspect-ratio: 16 / 9 !important;
       width: 100%;
+      order: 1;
     }
 
     .youtube * {
@@ -37,6 +39,10 @@
       background-color: lightgray;
       text-align: center;
       display: block;
+    }
+
+    .configs {
+      order: 2;
     }
 
     .config {
@@ -48,8 +54,8 @@
       width: 10ch;
     }
 
-    .toRight {
-      float: right;
+    .jsons {
+      order: 3;
     }
 
     .jsonInput {
@@ -60,6 +66,11 @@
     .score {
       width: 100%;
       height: 3em;
+    }
+
+
+    .scores {
+      order: 4;
     }
 
     .hits {
@@ -74,11 +85,52 @@
       width: 100%;
       overflow-x: scroll;
       white-space: nowrap;
+      order: 5;
     }
 
     .source {
       text-align: center;
       justify-content: center;
+    }
+
+    /* スマホ */
+    @media screen and (max-width:480px) {
+      .main {
+        flex-flow: column;
+      }
+
+      .notesBox {
+        position: relative;
+        top: -200px;
+        width: 100%;
+        height: 700px;
+      }
+
+      .contents {
+        position: relative;
+        top: -200px;
+        width: 100%;
+        display: flex;
+        flex-flow: column;
+      }
+
+      .scores {
+        order: 1;
+      }
+
+      .youtube {
+        order: 2;
+      }
+
+      .jsons {
+        order: 3;
+      }
+
+      .configs {
+        order: 4;
+      }
+
+
     }
   </style>
 </head>
@@ -96,32 +148,38 @@
       <div class="youtube">
         <div id="youtubeEmbed"> Json Load Waiting</div>
       </div>
-      <!-- コンフィグ -->
-      <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10>
-      <span id="speedValue">10px</span><br>
+      <p class="configs">
+        <!-- コンフィグ -->
+        <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10>
+        <span id="speedValue">10px</span><br>
 
-      <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0>
-      <span id="timingValue">0</span><br>
+        <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0>
+        <span id="timingValue">0</span><br>
 
-      <span class="config">volume</span>:<br>
-      <span class="config">[music]</span> <input type="range" min=0 max=100 id="music" step=1 value=100>
-      <span id="musicValue">100</span><br>
-      <span class="config">[effect]</span> <input type="range" min=0 max=100 id="effect" step=1 value=100>
-      <span id="effectValue">100</span><br>
+        <span class="config">volume</span>:<br>
+        <span class="config">[music]</span> <input type="range" min=0 max=100 id="music" step=1 value=100>
+        <span id="musicValue">100</span><br>
+        <span class="config">[effect]</span> <input type="range" min=0 max=100 id="effect" step=1 value=100>
+        <span id="effectValue">100</span><br>
 
-      <span class="config">key</span>:
-      <input class="keyboard" id="keyboardA" type="text" value="Space(32)">
-      <input class="keyboard" id="keyboardB" type="text"><br>
+        <span class="config">key</span>:
+        <input class="keyboard" id="keyboardA" type="text" value="Space(32)">
+        <input class="keyboard" id="keyboardB" type="text"><br>
 
-      <span class="config">time</span>:<span id="videoTime">0/0</span>
-      <!-- ロード -->
-      <input class="toRight" type="button" id="jsonEdit" value="Json Data Load"><br>
-      <!-- ノーツデータ -->
-      <textarea class="jsonInput" id="jsonData" placeholder="Please input your code"></textarea><br>
+        <span class="config">time</span>:<span id="videoTime">0/0</span>
+      </p>
+      <p class="jsons">
+        <!-- ロード -->
+        <input type="button" id="jsonEdit" value="Json Data Load"><br>
+        <!-- ノーツデータ -->
+        <textarea class="jsonInput" id="jsonData" placeholder="Please input your code"></textarea><br>
+      </p>
       <!-- スコア -->
-      <textarea class="score" id="score" readonly></textarea><br>
-      <!-- ヒット -->
-      <span class="hits" id="hits">none</span>
+      <p class="scores">
+        <textarea class="score" id="score" readonly></textarea><br>
+        <!-- ヒット -->
+        <span class="hits" id="hits">none</span>
+      </p>
       <!-- ヘルプ -->
       <div class="help">
         Play:<br>
@@ -156,7 +214,7 @@
   // Play関連
   //// 前処理
   var data // jsonparse用
-  var isJsonLoaded = false // jsonロード
+  var isJsonLoaded = false
   //// 設定
   var keyCodeA = "Space"
   var keyCodeB = "Space"
