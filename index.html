@@ -110,6 +110,7 @@
       .youtubeLock {
         display: none;
       }
+
       .notesBox {
         position: relative;
         top: -200px;
@@ -220,6 +221,7 @@
     <a href="https://github.com/atomu21263/music-game">https://github.com/atomu21263/music-game</a>
   </div>
 </body>
+
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
   // Edit関連
@@ -251,7 +253,8 @@
   var elffset = document.getElementById("notes").children.length // データ用svgのoffset
   var svg = document.getElementById("notes")
   //// 動画
-  var player; // youtubeEmbed
+  var videoType = ""
+  var player; // youtubeEmbed用
   var isVideoLoaded = false
   var isPlayVideo = false
   //// ゲームステータス
@@ -270,7 +273,7 @@
 
     // 少し待ってロード
     setTimeout(() => {
-      youtubeLoad(movieID, "Edit")
+      videoLoad(movieID, "Edit")
     }, 500);
 
     document.getElementById("speed").setAttribute("disabled", "true")
@@ -299,8 +302,8 @@
     if (data == undefined) return;
     console.log("Json Parse")
 
-    // youtube Embed 読み込み
-    youtubeLoad(data.id, "Play")
+    // 動画 読み込み
+    videoLoad(data.id, "Play")
 
     // info
     document.getElementById("score").textContent = `${keyCodeA},${keyCodeB} to Start`;
@@ -361,9 +364,9 @@
   // ノーツの移動
   setInterval(() => {
     // 動画時間表示
-    try {
-      document.getElementById("videoTime").textContent = Math.round(player.getCurrentTime() * 100) / 100 + "/" + Math.round(player.getDuration() * 100) / 100 + "[sec]";
-    } catch (e) { }
+    if (isVideoLoaded) {
+      document.getElementById("videoTime").textContent = videoInfo("getNowTime") + "/" + videoInfo("getEndTime") + "[sec]";
+    }
 
     // ノーツの移動
     var lines = svg.children
@@ -402,28 +405,71 @@
   // その他
   //// スリープ
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  //// Youtubeロード
-  function youtubeLoad(id, mode) {
-    player = new YT.Player('youtubeEmbed', {
-      videoId: id,
-      events: {
-        'onReady': function () {
-          isVideoLoaded = true
-          console.log(`Youtube Load (${mode})`)
+  //// 動画ロード
+  function videoLoad(id, mode) {
+    // 追加する際の注意
+    //   読み込み終了時に
+    //     isVideoLoaded = true
+    //     console.log(`Youtube Load (${mode})`)
+    //   動画再生,動画停止時に
+    //     isPlayVideo = ???
+    //   動画が流れきったら
+    //     resetData()
+    // の処理をすること
+    if (isNaN(id)) {// 数字だけじゃないとき
+      player = new YT.Player('youtubeEmbed', {
+        videoId: id,
+        events: {
+          'onReady': function () {
+            isVideoLoaded = true
+            console.log(`Youtube Load (${mode})`)
+          },
+          'onStateChange': function (event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+              isPlayVideo = true
+            } else {
+              isPlayVideo = false
+            }
+            if (event.data == YT.PlayerState.ENDED) {
+              resetData()
+            }
+          },
+          'onError': function (e) { },
         },
-        'onStateChange': function (event) {
-          if (event.data == YT.PlayerState.PLAYING) {
-            isPlayVideo = true
-          } else {
-            isPlayVideo = false
-          }
-          if (event.data == YT.PlayerState.ENDED) {
-            resetData()
-          }
-        },
-        'onError': function (e) { },
-      },
-    });
+      });
+      videoType = "youtube"
+    } else { //数字のみ
+      videoType = "niconico"
+    }
+  }
+  //// 動画管理
+  function videoInfo(type, ops) {// play,pause,seek(sec),volume(0~100),getNowTime,getEndTime
+    switch (videoType) {
+      case "youtube":
+        switch (type) {
+          case "play":
+            player.playVideo()
+            return;
+          case "pause":
+            player.pauseVideo()
+            return;
+          case "seek":
+            player.seekTo(ops, true)
+            return;
+          case "volume":
+            player.setVolume(ops)
+            return;
+          case "getNowTime":
+            return Math.round(player.getCurrentTime() * 100) / 100;
+          case "getEndTime":
+            return Math.round(player.getDuration() * 100) / 100;
+          default:
+            console.log(`Unknown Func In ${type}`)
+            return;
+        }
+      default:
+        console.log(`Unknown VideoType ${type}`)
+    }
   }
   //// リセット
   function resetData() {
@@ -444,8 +490,8 @@
       scene = "waiting"
     } else {
       // 動画停止
-      player.pauseVideo()
-      player.seekTo(0)
+      videoInfo("pause")
+      videoUpdate("seek", 0)
       // シーン
       scene = "waiting"
       // jsonにする
@@ -504,7 +550,7 @@
   function musicUpDate() {
     var musicVolume = parseInt(document.getElementById("music").value)
     if (isVideoLoaded) {
-      player.setVolume(musicVolume)
+      videoInfo("volume", musicVolume)
     } else {
       musicVolume = 100
       document.getElementById("music").value = musicVolume
@@ -549,8 +595,8 @@
         setTimeout(function () {
           document.getElementById("info").textContent = ""
           // 念のためスクロール
-          player.seekTo(0, true)
-          player.playVideo()
+          videoInfo("seek", 0)
+          videoInfo("play")
         }, 3000)
 
         // モードでテキストを変更
@@ -579,16 +625,16 @@
         if (timing == 0) { // Perfect
           hits[0]++
           scoreUpDate("Perfect", 500, sign)
-        } else if (timing < 30) { // Great
+        } else if (timing < 3* speed) { // Great
           hits[1]++
           scoreUpDate("Great", 300, sign)
-        } else if (timing < 60) { // Good
+        } else if (timing < 6 * speed) { // Good
           hits[2]++
           scoreUpDate("Good", 100, sign)
-        } else if (timing < 90) { // Bad
+        } else if (timing < 9 * speed) { // Bad
           hits[3]++
           scoreUpDate("Bad", 50, sign)
-        } else if (timing < 120) { // Miss
+        } else if (timing < 12 * speed) { // Miss
           hits[4]++
           scoreUpDate("Miss", 0, sign)
         } else { // その他除外
@@ -600,13 +646,13 @@
         return;
       // 編集中
       case "edit":
-        if (player.getCurrentTime() < 0.50) return;
-        if (player.getCurrentTime() > player.getDuration() - 0.5) return;
+        if (videoInfo("getNowTime") < 0.5) return;
+        if (videoInfo("getNowTime") > videoInfo("getEndTime") - 0.5) return;
         if (!isPlayVideo) return;
 
         // 追加
         svg.innerHTML += `<rect x="0" y="${checkLine}" width="100%" height="20" fill="blue" id="line"></rect>`
-        var time = Math.round(player.getCurrentTime() * 100) / 100;
+        var time = videoInfo("getNowTime")
         notesTiming.push(time)
         console.log(`Append Notes: ${time}`)
 
