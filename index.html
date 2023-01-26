@@ -427,12 +427,17 @@
       // シーン
       scene = "waiting"
     } else {
+      // 動画停止
+      player.pauseVideo()
+      player.seekTo(0)
+      // シーン
+      scene = "waiting"
       // jsonにする
       document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
       console.log("Json Export")
     }
     // ノーツ削除
-    var lines = svg.children
+    var lines = document.getElementById("svg").children
     for (var i = elffset; i < lines.length; i++) {
       lines[i].remove()
     }
