@@ -148,7 +148,7 @@
       <div class="youtube">
         <div id="youtubeEmbed"> Json Load Waiting</div>
       </div>
-      <p class="configs">
+      <span class="configs">
         <!-- コンフィグ -->
         <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10>
         <span id="speedValue">10px</span><br>
@@ -167,19 +167,20 @@
         <input class="keyboard" id="keyboardB" type="text"><br>
 
         <span class="config">time</span>:<span id="videoTime">0/0</span>
-      </p>
-      <p class="jsons">
+      </span>
+      <br>
+      <span class="jsons">
         <!-- ロード -->
         <input type="button" id="jsonEdit" value="Json Data Load"><br>
         <!-- ノーツデータ -->
         <textarea class="jsonInput" id="jsonData" placeholder="Please input your code"></textarea><br>
-      </p>
+      </span>
       <!-- スコア -->
-      <p class="scores">
+      <span class="scores">
         <textarea class="score" id="score" readonly></textarea><br>
         <!-- ヒット -->
         <span class="hits" id="hits">none</span>
-      </p>
+      </span>
       <!-- ヘルプ -->
       <div class="help">
         Play:<br>
@@ -400,12 +401,32 @@
           } else {
             isPlayVideo = false
           }
+          if (event.data == YT.PlayerState.ENDED) {
+            resetData()
+          }
         },
-        'onError': function (e) {
-          document.getElementById("hits").textContent = e
-        },
+        'onError': function (e) { },
       },
     });
+  }
+  //// リセット
+  function resetData() {
+    if (!isEdit) {
+      // youtube
+      player = undefined
+      isVideoLoaded = false
+      document.getElementById("videoTime").textContent = "0/0"
+      document.getElementById("youtubeEmbed").outerHTML = `<div id="youtubeEmbed"> Json Load Waiting</div>`
+      // config
+      document.getElementById("speed").removeAttribute("disabled")
+      document.getElementById("jsonData").removeAttribute("disabled")
+      document.getElementById("jsonEdit").removeAttribute("disabled")
+      // score
+      document.getElementById("score").value = ""
+      document.getElementById("hits").textContent = "none"
+      // シーン
+      scene = "waiting"
+    }
   }
   //// スコア更新
   function scoreUpDate(text, add, sign) {
@@ -441,13 +462,13 @@
   //// スピード更新
   function speedUpDate() {
     speed = parseInt(document.getElementById("speed").value)
-    document.getElementById("speedValue").innerText = speed + "px"
+    document.getElementById("speedValue").textContent = speed + "px"
   }
   //// タイミング更新
   function timingUpDate() {
     var timingOffset = parseInt(document.getElementById("timing").value)
     checkLine = document.getElementById("checkLine").y.baseVal.value = 600 - timingOffset
-    document.getElementById("timingValue").innerText = timingOffset
+    document.getElementById("timingValue").textContent = timingOffset
   }
   //// 音楽Volume更新
   function musicUpDate() {
@@ -458,13 +479,13 @@
       musicVolume = 100
       document.getElementById("music").value = musicVolume
     }
-    document.getElementById("musicValue").innerText = musicVolume
+    document.getElementById("musicValue").textContent = musicVolume
   }
   //// 効果音Volume更新
   function effectUpDate() {
     var effectVolume = parseInt(document.getElementById("effect").value)
     document.getElementById("sound").volume = effectVolume / 100
-    document.getElementById("effectValue").innerText = effectVolume
+    document.getElementById("effectValue").textContent = effectVolume
   }
   //// シーンごとに変更
   function gameSystem() {
