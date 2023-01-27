@@ -31,14 +31,14 @@
       display: block;
     }
 
-    .youtube {
+    .videoBox {
       aspect-ratio: 16 / 9 !important;
       width: 100%;
       order: 1;
       position: relative;
     }
 
-    .youtube * {
+    .videoBox * {
       width: 100%;
       height: 100%;
       background-color: lightgray;
@@ -46,7 +46,7 @@
       display: block;
     }
 
-    .youtubeLock {
+    .videoLock {
       background-color: red;
       position: absolute;
       top: 0;
@@ -111,7 +111,7 @@
         flex-flow: column;
       }
 
-      .youtubeLock {
+      .videoLock {
         display: none;
       }
 
@@ -134,7 +134,7 @@
         order: 1;
       }
 
-      .youtube {
+      .video {
         order: 2;
       }
 
@@ -161,9 +161,9 @@
     <audio id="sound" src="./taiko.mp3"></audio> <!-- Download from https://soundeffect-lab.info/sound/ -->
     <div class="contents">
       <!-- ようつべ -->
-      <div class="youtube">
-        <div id="youtubeEmbed"> Json Load Waiting</div>
-        <div class="youtubeLock"></div>
+      <div class="videoBox">
+        <div id="videoEmbed"> Json Load Waiting</div>
+        <div class="videoLock"></div>
       </div>
       <span class="configs">
         <!-- コンフィグ -->
@@ -207,7 +207,7 @@
         4. 設定したキーでスタート<br>
         　　タイミングよく押そう!<br>
         ※ スマホではタップした後に<br>
-        　　Youtubeを触らないと<br>
+        　　動画を触らないと<br>
         　　動かない場合があります<br>
         (fastは打つのが早すぎ オフセットを大きく)<br>
         <br>
@@ -416,19 +416,19 @@
     // 追加する際の注意
     //   読み込み終了時に
     //     isVideoLoaded = true
-    //     console.log(`Youtube Load (${mode})`)
+    //     console.log(`Video Load (${mode})`)
     //   動画再生,動画停止時に
     //     isPlayVideo = ???
     //   動画が流れきったら
     //     resetData()
     // の処理をすること
-    if (isNaN(id)) {// 数字だけじゃないとき
-      player = new YT.Player('youtubeEmbed', {
+    if (id.match(/[A-Za-z0-9_-]{11,12}/)) {// ようつべ
+      player = new YT.Player('videoEmbed', {
         videoId: id,
         events: {
           'onReady': function () {
             isVideoLoaded = true
-            console.log(`Youtube Load (${mode})`)
+            console.log(`Video Load (${mode})`)
           },
           'onStateChange': function (event) {
             if (event.data == YT.PlayerState.PLAYING) {
@@ -443,9 +443,15 @@
           'onError': function (e) { },
         },
       });
+
       videoType = "youtube"
-    } else { //数字のみ
+      return;
+    }
+
+    if (id.match(/sm[0-9]+/)) { // にこにこ
+
       videoType = "niconico"
+      return;
     }
   }
   //// 動画管理
@@ -480,11 +486,11 @@
   //// リセット
   function resetData() {
     if (!isEdit) {
-      // youtube
+      // video
       player = undefined
       isVideoLoaded = false
       document.getElementById("videoTime").textContent = "0/0"
-      document.getElementById("youtubeEmbed").outerHTML = `<div id="youtubeEmbed"> Json Load Waiting</div>`
+      document.getElementById("videoEmbed").outerHTML = `<div id="videoEmbed"> Json Load Waiting</div>`
       // config
       document.getElementById("speed").removeAttribute("disabled")
       document.getElementById("jsonData").removeAttribute("disabled")
