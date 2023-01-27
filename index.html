@@ -216,7 +216,7 @@
         2. スペースキーで入力<br>
         3. ボタンで出力 共有してみんなで遊ぼう!<br>
         ex) ?edit=dBQg24mx45Y<br>
-        from <a href="https://www.youtube.com/watch?v=dBQg24mx45Y">youtube.com/watch?v=dBQg24mx45Y</a><br>
+        from <a href="https://www.youtube.com/watch?v=dBQg24mx45Y">https://www.youtube.com/watch?v=dBQg24mx45Y</a><br>
         (動画が表示されないのは譜面が作れないよ!)<br>
       </div>
     </div>
@@ -356,7 +356,7 @@
     e.preventDefault();
 
     // 処理実行
-    gameSystem()
+    gameSystem(false)
   });
   //// タッチ
   document.addEventListener("touchstart", function (e) {
@@ -364,7 +364,7 @@
     e.preventDefault();
 
     // 処理実行
-    gameSystem()
+    gameSystem(true)
   })
 
   // ノーツの移動
@@ -575,7 +575,7 @@
     document.getElementById("effectValue").textContent = effectVolume
   }
   //// シーンごとに変更
-  function gameSystem() {
+  function gameSystem(isTouch) {
     // シーンで挙動変更
     switch (scene) {
       // 待機中
@@ -622,9 +622,11 @@
         return;
       // プレイ中
       case "play":
-        document.getElementById("sound").pause()
-        document.getElementById("sound").currentTime = 0
-        document.getElementById("sound").play()
+        if (isTouch) {
+          document.getElementById("sound").pause()
+          document.getElementById("sound").currentTime = 0
+          document.getElementById("sound").play()
+        }
         // 数値だし
         if (svg.children.length < elffset) return;
         if (document.getElementById("note") == undefined) return;
