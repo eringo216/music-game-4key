@@ -252,8 +252,10 @@
   var score = 0
   var hits = [0, 0, 0, 0, 0] // Perfect Great Good Bad Miss
   //// 召喚用
-  var defaultCheckLine = document.getElementById("checkLine").y.baseVal.value
+  var defaultCheckLine = parseInt(document.getElementById("checkLine").getAttribute("y"))
   var checkLine = defaultCheckLine
+  // 削除
+  var deleteLine = document.getElementById("notesBox").clientHeight
 
   // 共通
   //// 制御
@@ -380,9 +382,10 @@
     for (var i = elffset; i < lines.length; i++) {
       // Editモード
       if (isEdit && isPlayVideo) {
-        lines[i].y.baseVal.value = lines[i].y.baseVal.value - speed
+        var nextPos = parseInt(lines[i].getAttribute("y")) - speed
+        lines[i].setAttribute("y",nextPos)
         // 枠外削除
-        if (lines[i].y.baseVal.value < 0) {
+        if (nextPos < 0) {
           lines[i].remove()
         }
 
@@ -391,16 +394,18 @@
 
 
       if (isPlace && isPlayVideo) { // 設置済みかつ再生中
-        lines[i].y.baseVal.value = lines[i].y.baseVal.value + speed
+        var nextPos = parseInt(lines[i].getAttribute("y")) + speed
+        lines[i].setAttribute("y",nextPos)
         // checkline越えは赤くする
-        if (lines[i].y.baseVal.value > checkLine + 100) {
+        if (nextPos > checkLine + 12 * speed && lines[i].getAttribute("id") == "note") {
           hits[4]++
           scoreUpDate("Miss", 0, 0)
           lines[i].setAttribute("fill", "red")
           lines[i].removeAttribute("id")
         }
         // 枠外削除
-        if (lines[i].y.baseVal.value > document.getElementById("notesBox").clientHeight) {
+        if (nextPos > deleteLine) {
+          console.log("del")
           lines[i].remove()
         }
       }
@@ -515,7 +520,7 @@
       console.log("Json Export")
     }
     // ノーツ削除
-    var lines = document.getElementById("svg").children
+    var lines = document.getElementById("notesBox").children
     if (lines.length >= elffset) {
       for (var i = elffset; i < lines.length; i++) {
         lines[i].remove()
@@ -561,7 +566,8 @@
   //// タイミング更新
   function timingUpDate() {
     var timingOffset = parseInt(document.getElementById("timing").value)
-    checkLine = document.getElementById("checkLine").y.baseVal.value = 600 - timingOffset
+    checkLine = 600 - timingOffset
+    document.getElementById("checkLine").setAttribute("y",checkLine) 
     document.getElementById("timingValue").textContent = timingOffset
   }
   //// 音楽Volume更新
@@ -633,10 +639,22 @@
           document.getElementById("sound").currentTime = 0
           document.getElementById("sound").play()
         }
+
         // 数値だし
-        if (svg.children.length < elffset) return;
-        if (document.getElementById("note") == undefined) return;
-        var timelag = document.getElementById("checkLine").y.baseVal.value - document.getElementById("note").y.baseVal.value
+        var lines = svg.children
+        if (lines.length < elffset) return;
+        var note
+        var noteY = 0
+        for (var i = elffset;i < lines.length;i++) {
+          var dummy = lines[i]
+          if (dummy.getAttribute("id") == "note" && parseInt(dummy.getAttribute("y")) > noteY) {
+            note = dummy
+            noteY = parseInt(dummy.getAttribute("y"))
+          }
+        }
+        if (note == undefined) return;
+        console.log(note)
+        var timelag = checkLine - noteY
         var timing = Math.abs(timelag)
         var sign = Math.sign(timelag)
 
@@ -654,15 +672,13 @@
           hits[3]++
           scoreUpDate("Bad", 50, sign)
         } else if (timing < 12 * speed) { // Miss
-          console.log(hits)
           hits[4]++
-          console.log(hits)
           scoreUpDate("Miss", 0, sign)
         } else { // その他除外
           return;
         }
         // 判定に引っかかったら削除
-        svg.children[elffset].remove()
+        note.remove()
 
         return;
       // 編集中
