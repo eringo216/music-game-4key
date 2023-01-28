@@ -628,7 +628,7 @@
         return;
       // プレイ中
       case "play":
-        if (isTouch) {
+        if (!isTouch) {
           document.getElementById("sound").pause()
           document.getElementById("sound").currentTime = 0
           document.getElementById("sound").play()
