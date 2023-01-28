@@ -154,7 +154,7 @@
 <body>
   <div class="main">
     <!-- ノーツ表示 -->
-    <svg class="notesBox" id="notes" xmlns="http://www.w3.org/2000/svg">
+    <svg class="notesBox" id="notesBox" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="600" width="100%" height="20" fill="gray" id="checkLine"></rect>
       <text id="info" x="50%" y="75%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
     </svg>
@@ -167,7 +167,7 @@
       </div>
       <span class="configs">
         <!-- コンフィグ -->
-        <span class="config">speed</span>:<input type="range" min=1 max=50 id="speed" step=1 value=10>
+        <span class="config">speed</span>:<input type="range" min=1 max=20 id="speed" step=1 value=10>
         <span id="speedValue">10px</span><br>
 
         <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0>
@@ -256,8 +256,8 @@
 
   // 共通
   //// 制御
-  var elffset = document.getElementById("notes").children.length // データ用svgのoffset
-  var svg = document.getElementById("notes")
+  var elffset = document.getElementById("notesBox").children.length // データ用svgのoffset
+  var svg = document.getElementById("notesBox")
   //// 動画
   var videoType = ""
   var player; // youtubeEmbed用
@@ -399,7 +399,7 @@
           lines[i].removeAttribute("id")
         }
         // 枠外削除
-        if (lines[i].y.baseVal.value > 700) {
+        if (lines[i].y.baseVal.value > document.getElementById("notesBox").clientHeight) {
           lines[i].remove()
         }
       }
@@ -501,8 +501,6 @@
       maxCombo = 0
       score = 0
       hits = [0, 0, 0, 0, 0]
-      // document.getElementById("score").value = ""
-      // document.getElementById("hits").textContent = "none"
       // シーン
       scene = "waiting"
     } else {
@@ -517,8 +515,10 @@
     }
     // ノーツ削除
     var lines = document.getElementById("svg").children
-    for (var i = elffset; i < lines.length; i++) {
-      lines[i].remove()
+    if (lines.length >= elffset) {
+      for (var i = elffset; i < lines.length; i++) {
+        lines[i].remove()
+      }
     }
   }
   //// スコア更新
@@ -592,8 +592,7 @@
         if (!isEdit) {
           for (var i = 0; i < data.timing.length; i++) {
             var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
-            svg.innerHTML += `<rect id="note" class="notes" x="0" y="0" width="100%" height="20" fill="blue" id="line"></rect>`
-            document.getElementById("notes").lastElementChild.y.baseVal.value = y
+            svg.innerHTML += `<rect id="note" class="notes" x="0" y="${y}" width="100%" height="20" fill="blue" id="line"></rect>`
           }
           isPlace = true
           console.log("Notes Placed")
