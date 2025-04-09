@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
+</head>
+<body>
+    <audio id="sound" src="./hit.wav"></audio>
+    <canvas id="game-canvas"></canvas>
+    <script>
+        const app = new PIXI.Application({
+            view: document.getElementById('game-canvas'),   // canvas要素を指定
+            width: 600,                                     // 横サイズ
+            height: 1000,                                    // 縦サイズ
+            backgroundColor: 0x000000                       // 背景色
+        })
+
+        document.body.appendChild(app.view)
+
+        const LANE_COUNT = 4
+        const LANE_WIDTH = app.screen.width / LANE_COUNT
+        const NOTE_HEIGHT = 20
+        const NOTE_WIDTH = LANE_WIDTH
+        const speed = 7
+
+        const checkLineY = 800
+
+        let Keycode1 = "KeyD"
+        let Keycode2 = "KeyF"
+        let Keycode3 = "KeyJ"
+        let Keycode4 = "KeyK"
+        // キーに対応する色の管理
+        const keyState = [false,false,false,false]
+
+        // 判定ライン
+        const checkLine = new PIXI.Graphics()
+        checkLine.beginFill(0x888888)
+        checkLine.drawRect(0, checkLineY, app.screen.width, 20)
+        checkLine.endFill()
+        app.stage.addChild(checkLine)
+
+        const keys = ['KeyD', 'KeyF', 'KeyJ', 'KeyK']
+        const keyRects = []
+
+        for (let i = 0; i < 4; i++) {
+            const rect = new PIXI.Graphics()
+            rect.beginFill(0x555555) // グレー
+            rect.drawRect(0, 0, app.screen.width / 4, 20)
+            rect.endFill()
+            rect.y = checkLineY
+            rect.x = i * (app.screen.width / 4)
+            app.stage.addChild(rect)
+            keyRects.push(rect)
+        }
+
+        // レーンごとにノーツリスト
+        const notes = [[], [], [], []]
+
+        // ノーツを生成
+        function spawnNote(lane) {
+            const note = new PIXI.Graphics()
+            note.beginFill(0x00aaff)
+            note.drawRect(0, 0, NOTE_WIDTH - 4, NOTE_HEIGHT)
+            note.endFill()
+            note.x = lane * LANE_WIDTH
+            note.y = -NOTE_HEIGHT
+            note.lane = lane
+            app.stage.addChild(note)
+            notes[lane].push(note)
+        }
+
+        // キー入力処理
+        const keymap = { "KeyD": 0, "KeyF": 1, "KeyJ": 2, "KeyK": 3 }
+
+        window.addEventListener("keydown", (e) => {
+            if (keymap[e.code] !== undefined) {
+            keyState[e.code] = true
+            const lane = keymap[e.code]
+            const laneNotes = notes[lane]
+            if (laneNotes.length === 0) return
+
+            const topNote = laneNotes[0]
+            const diff = Math.abs(topNote.y - checkLineY)
+            if (diff < 30) {
+                console.log(`Hit! Lane: ${lane}, diff: ${diff}`)
+                app.stage.removeChild(topNote)
+                laneNotes.shift()
+            } else {
+                console.log(`Miss! Lane: ${lane}, diff: ${diff}`)
+            }
+            }
+            if (!(e.code == Keycode1 || e.code == Keycode2 || e.code == Keycode3 || e.code == Keycode4)) return // キーチェック
+            // キー 無効化
+            e.preventDefault()
+
+            let keynum
+            switch(e.code) {
+            case Keycode1:
+                keynum = 1
+                keyState[0] = true
+                break
+            case Keycode2:
+                keynum = 2
+                keyState[1] = true
+                break
+            case Keycode3:
+                keynum = 3
+                keyState[2] = true
+                break
+            case Keycode4:
+                keynum = 4
+                keyState[3] = true
+                break
+            }
+            // 処理実行
+            console.log("pushed:",keynum)
+            gameSystem(false,keynum)
+        })
+
+        // キーアップで色戻す
+        window.addEventListener('keyup', (e) => {
+            switch(e.code) {
+            case Keycode1:
+                keynum = 1
+                keyState[0] = false
+                break
+            case Keycode2:
+                keynum = 2
+                keyState[1] = false
+                break
+            case Keycode3:
+                keynum = 3
+                keyState[2] = false
+                break
+            case Keycode4:
+                keynum = 4
+                keyState[3] = false
+                break
+            }
+        })
+
+        // ノーツを定期的に降らせる（テスト用）
+        setInterval(() => {
+            const lane = Math.floor(Math.random() * 4)
+            spawnNote(lane)
+        }, 150)
+
+        // アニメーション
+        app.ticker.add(() => {
+            for (let lane = 0; lane < LANE_COUNT; lane++) {
+                const rect = keyRects[lane]
+                rect.clear()
+                rect.beginFill(keyState[lane] ? 0x00ffff : 0x555555) // 押してる時はシアン
+                rect.drawRect(0, 0, app.screen.width / 4, 20)
+                rect.endFill()
+
+                notes[lane].forEach((note, index) => {
+                    note.y += speed
+                    // 画面外に出たら削除
+                    if (note.y > app.screen.height) {
+                    app.stage.removeChild(note)
+                    notes[lane].splice(index, 1)
+                    }
+                })
+            }
+        })
+
+        //// シーンごとに変更
+        function gameSystem(isTouch,keynum) {
+            if (!isTouch) {
+                document.getElementById("sound").pause()
+                document.getElementById("sound").currentTime = 0
+                document.getElementById("sound").play()
+                }
+            // シーンで挙動変更
+            switch (scene) {
+            // 待機中
+            case "waiting":
+                if (!isVideoLoaded) return; // 読み込みチェック
+
+                // 3
+                document.getElementById("info").textContent = "3"
+                // 2
+                setTimeout(function () {
+                document.getElementById("info").textContent = "2"
+                }, 1000)
+                // 1
+                setTimeout(function () {
+                document.getElementById("info").textContent = "1"
+                }, 2000)
+                // 0
+                setTimeout(function () {
+                document.getElementById("info").textContent = ""
+                // 念のためスクロール
+                videoInfo("seek", 0)
+                videoInfo("play")
+                }, 3000)
+
+                // モードでテキストを変更
+                if (isEdit) {
+                document.getElementById("score").textContent = "- Edit Mode -"
+                scene = "edit"
+                } else {
+                document.getElementById("score").textContent = "Please Wait..."
+                scene = "play"
+                }
+
+                return;
+            // プレイ中
+            case "play":
+
+                // 数値だし
+                let lines = svg.children
+                if (lines.length < elffset) return;
+                let note
+                let noteY = 0
+                note = svg.querySelector(`[index="${currentIndex[keynum - 1] + 1}"][keynum="${keynum}"]`)
+                noteY = parseInt(note.getAttribute("y"))
+                console.log(note)
+                console.log(currentIndex)
+                if (note == undefined) return;
+            
+                let timelag = checkLine - noteY
+                let timing = Math.abs(timelag)
+                let sign = Math.sign(timelag)
+
+                console.log(note.getAttribute("keynum"))
+                if(note.getAttribute("keynum") == keynum){
+                // スコア計算
+                if (timing == 0) { // Perfect
+                    hits[0]++
+                    scoreUpDate("Perfect", 500, sign)
+                } else if (timing < 3 * speed) { // Great
+                    hits[1]++
+                    scoreUpDate("Great", 300, sign)
+                } else if (timing < 6 * speed) { // Good
+                    hits[2]++
+                    scoreUpDate("Good", 100, sign)
+                } else if (timing < 9 * speed) { // Bad
+                    hits[3]++
+                    scoreUpDate("Bad", 50, sign)
+                } else if (timing < 12 * speed) { // Miss
+                    hits[4]++
+                    scoreUpDate("Miss", 0, sign)
+                } else { // その他除外
+                    return;
+                }
+                // 判定に引っかかったら削除
+                note.remove()
+                currentIndex[keynum - 1] = parseInt(note.getAttribute("index"))
+
+                }
+                return;
+
+
+            // 編集中
+            case "edit":
+                if (videoInfo("getNowTime") < 0.5) return;
+                if (videoInfo("getNowTime") > videoInfo("getEndTime") - 0.5) return;
+                if (!isPlayVideo) return;
+
+                // 追加
+                const x = (keynum - 1) * 25;
+                svg.innerHTML += `<rect class="notes" x="${x}%" y="${checkLine}" width="25%" height="20" fill="blue" id="line"></rect>`
+                let time = videoInfo("getNowTime")
+                switch(keynum) {
+                case 1:
+                    notes1.push(time)
+                    break;
+                case 2:
+                    notes2.push(time)
+                    break;
+                case 3:
+                    notes3.push(time)
+                    break;
+                case 4:
+                    notes4.push(time)
+                    break;
+                }
+                console.log(`Append Notes: keynum:${keynum},${time}`)
+
+                return;
+            }
+        }
+    </script>
+</body>
+</html>
