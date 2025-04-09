@@ -15,7 +15,8 @@
 
     .notesBox {
       width: 40%;
-      max-width: 400px;
+      max-width: 600px;
+      max-height: 950px;
       border-width: 3px;
       border-color: black;
       border-style: solid;
@@ -77,7 +78,7 @@
 
     .score {
       width: 100%;
-      height: 3em;
+      height: 4em;
     }
 
 
@@ -150,39 +151,40 @@
 
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"></script>
 </head>
 
 <body>
   <div class="main">
     <!-- ノーツ表示 -->
-    <svg class="notesBox" id="notesBox" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="600" width="100%" height="20" fill="gray" id="checkLine"></rect>
-      <text id="info" x="50%" y="75%" font-family="Verdana" font-size="20" text-anchor="middle"></text>
-    </svg>
-    <audio id="sound" src="./taiko.mp3"></audio> <!-- Download from https://soundeffect-lab.info/sound/ -->
+    <canvas class="notesBox" id="notesBox" xmlns="http://www.w3.org/2000/svg">
+    </canvas>
+    <audio id="sound" src="./hit.ogg"></audio> <!-- Download from https://soundeffect-lab.info/sound/ -->
     <div class="contents">
       <!-- ようつべ -->
       <div class="videoBox">
         <div id="videoEmbed"> Json Load Waiting</div>
-        <div class="videoLock"></div>
+        <!--div class="videoLock"--><!--/div-->
       </div>
       <span class="configs">
         <!-- コンフィグ -->
-        <span class="config">speed</span>:<input type="range" min=1 max=20 id="speed" step=1 value=10>
-        <span id="speedValue">10px</span><br>
+        <span class="config">speed</span>:<input type="range" min=1 max=40 id="speed" step=1 value=15 oninput="speedUpDate()">
+        <span id="speedValue">15px</span><br>
 
-        <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0>
+        <span class="config">offset</span>:<input type="range" min=-20 max=200 id="timing" step=1 value=0 oninput="timingUpDate()">
         <span id="timingValue">0</span><br>
 
         <span class="config">volume</span>:<br>
-        <span class="config">[music]</span> <input type="range" min=0 max=100 id="music" step=1 value=100>
+        <span class="config">[music]</span> <input type="range" min=0 max=100 id="music" step=1 value=100 oninput="musicUpDate()">
         <span id="musicValue">100</span><br>
-        <span class="config">[effect]</span> <input type="range" min=0 max=100 id="effect" step=1 value=100>
+        <span class="config">[effect]</span> <input type="range" min=0 max=100 id="effect" step=1 value=100 oninput="effectUpDate()">
         <span id="effectValue">100</span><br>
 
         <span class="config">key</span>:
-        <input class="keyboard" id="keyboardA" type="text" value="Space(32)">
-        <input class="keyboard" id="keyboardB" type="text"><br>
+        <input class="keyboard" id="keyboard1" type="text" value="KeyD">
+        <input class="keyboard" id="keyboard2" type="text" value="KeyF">
+        <input class="keyboard" id="keyboard3" type="text" value="KeyJ">
+        <input class="keyboard" id="keyboard4" type="text" value="KeyK"><br>
 
         <span class="config">time</span>:<span id="videoTime">0/0</span>
       </span>
@@ -197,8 +199,8 @@
       <span class="scores">
         <textarea class="score" id="score" readonly></textarea><br>
         <!-- ヒット -->
-        <span class="hits" id="hits">none</span>
-      </span>
+        <!--span class="hits" id="hits">none</span>
+      </span-->
       <!-- ヘルプ -->
       <div class="help">
         Play:<br>
@@ -228,46 +230,120 @@
     <a href="https://github.com/aatomu/music-game">https://github.com/aatomu/music-game</a>
   </div>
 </body>
-
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
+  const app = new PIXI.Application({
+    view: document.getElementById('notesBox'),   // canvas要素を指定
+    width: 600,                                     // 横サイズ
+    height: 950,                                    // 縦サイズ
+    backgroundColor: 0x000000                       // 背景色
+  })
+
+  let infotext = new PIXI.Text('3', {
+    fontFamily: 'Arial',
+    fontSize: 30,
+    fill: 0xffffff, // 白色
+    align: 'center'
+  });
+  infotext.anchor.set(0.5);
+  infotext.x = app.screen.width / 2; // 画面中央
+  infotext.y = app.screen.height / 3 * 2; // 画面中央よりちょい下
+  infotext.text = "";
+  app.stage.addChild(infotext);
+
+
   // Edit関連
   const searchParams = new URLSearchParams(window.location.search)
-  var isEdit = false
-  var movieID = "" //動画ID
-  var notesTiming = [] //ノーツタイミング
+  let isEdit = false
+  let movieID = "" //動画ID
 
   // Play関連
   //// 前処理
-  var data // jsonparse用
-  var isJsonLoaded = false
+  let data // jsonparse用
+  let isJsonLoaded = false
   //// 設定
-  var keyCodeA = "Space"
-  var keyCodeB = "Space"
-  var speed = 10
+  let Keycode1 = "KeyD"
+  let Keycode2 = "KeyF"
+  let Keycode3 = "KeyJ"
+  let Keycode4 = "KeyK"
+  let speed = 15
+  
+  const laneCount = 4
+  const laneWidth = app.screen.width / laneCount
+  const noteHeight = 20
+  const noteWidth = laneWidth
+  const checkLineY = 800
   //// ステータス
-  var isPlace = false
-  var combo = 0
-  var maxCombo = 0
-  var score = 0
-  var hits = [0, 0, 0, 0, 0] // Perfect Great Good Bad Miss
+  let fps = 0;
+  let lastTime = 0;
+  let currentIndex = [0,0,0,0]
+  let spawnedIndex = new Array(laneCount).fill(0);
+
+  let combo = 0
+  let maxCombo = 0
+  let score = 0
+  let hits = [0, 0, 0, 0, 0] // Perfect Great Good Bad Miss
   //// 召喚用
-  var defaultCheckLine = parseInt(document.getElementById("checkLine").getAttribute("y"))
-  var checkLine = defaultCheckLine
+  const sectionWidth = 25;
   // 削除
-  var deleteLine = document.getElementById("notesBox").clientHeight
+  let deleteLine = app.screen.height + 12 * speed + 1;
 
   // 共通
   //// 制御
-  var elffset = document.getElementById("notesBox").children.length // データ用svgのoffset
-  var svg = document.getElementById("notesBox")
+  let elffset = document.getElementById("notesBox").children.length // データ用svgのoffset
+  let svg = document.getElementById("notesBox")
   //// 動画
-  var videoType = ""
-  var player; // youtubeEmbed用
-  var isVideoLoaded = false
-  var isPlayVideo = false
+  let videoType = ""
+  let player; // youtubeEmbed用
+  let isVideoLoaded = false
+  let isPlayVideo = false
   //// ゲームステータス
-  var scene = "waiting"
+  let scene = "waiting"
+
+  // キーに対応する色の管理
+  let keyState = [false,false,false,false]
+
+  // 判定ライン
+  let checkLine = new PIXI.Graphics()
+  checkLine.beginFill(0x888888)
+  checkLine.drawRect(0, checkLineY, app.screen.width, 20)
+  checkLine.endFill()
+  app.stage.addChild(checkLine)
+
+  const keys = ['KeyD', 'KeyF', 'KeyJ', 'KeyK']
+  const keyRects = []
+
+  for (let i = 0; i < 4; i++) {
+      const rect = new PIXI.Graphics()
+      rect.beginFill(0x555555) // グレー
+      rect.drawRect(0, 0, app.screen.width / 4, 20)
+      rect.endFill()
+      rect.y = checkLineY
+      rect.x = i * (app.screen.width / 4)
+      app.stage.addChild(rect)
+      keyRects.push(rect)
+  }
+
+  // レーンごとにノーツリスト
+  let notes = [[], [], [], []]
+  let noteData = [[], [], [], []] //タイミングリスト
+
+  // ノーツを生成
+  function spawnNote(lane, y, index = null) {
+      const note = new PIXI.Graphics()
+      note.lineStyle(2, 0xffffff, 1);
+      note.beginFill(0x00aaff)
+      note.drawRect(0, 0, noteWidth - 4, noteHeight)
+      note.endFill()
+      note.x = lane * laneWidth + 2;
+      note.y = y - noteHeight;
+      note.id = "note";
+      if (index !== null) note.index = index; // 任意でindex追加
+      app.stage.addChild(note)
+      //console.log(lane,y,index)
+      notes[lane].push(note)
+      return note;
+  }
 
   // Editモード
   if (searchParams.has('edit')) {
@@ -288,34 +364,32 @@
     document.getElementById("speed").setAttribute("disabled", "true")
     document.getElementById("timing").setAttribute("disabled", "true")
     document.getElementById("score").style.display = "none"
-    document.getElementById("hits").style.display = "none"
+    //document.getElementById("hits").style.display = "none"
     console.log("Config Lock")
   }
 
   // json読み込み
   document.getElementById("jsonEdit").addEventListener("click", function () {
     console.log("JsonEdit Click")
-
-    // editモード
+    // ノーツ配置
     if (isEdit) {
-      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
+      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, notes1: noteData[0], notes2: noteData[1], notes3: noteData[2], notes4: noteData[3]}) 
       console.log("Json Export")
       return;
+    } else {
+      data = JSON.parse(document.getElementById("jsonData").value);
+      noteData = [data.notes1, data.notes2, data.notes3, data.notes4];
+
+      if (!data) return;
+
+      console.log("Json Parse");
     }
-
-
-    if (isJsonLoaded) return;
-    console.log("Json Import")
-
-    data = JSON.parse(document.getElementById("jsonData").value)
-    if (data == undefined) return;
-    console.log("Json Parse")
 
     // 動画 読み込み
     videoLoad(data.id, "Play")
 
     // info
-    document.getElementById("score").textContent = `${keyCodeA},${keyCodeB} to Start`;
+    document.getElementById("score").textContent = `${Keycode1},${Keycode2},${Keycode3},${Keycode4} to Start`;
     console.log("Text Change")
 
     // ロック
@@ -325,41 +399,49 @@
     console.log("Config Lock")
   })
 
-  // コンフィグ
-  document.getElementById("speed").addEventListener("input", speedUpDate); speedUpDate()
-  document.getElementById("timing").addEventListener("input", timingUpDate); timingUpDate()
-  document.getElementById("music").addEventListener("input", musicUpDate); musicUpDate()
-  document.getElementById("effect").addEventListener("input", effectUpDate); effectUpDate()
+  // キー設定変更共通処理
+  function setupKeyListener(elementId, keyCodeVar) {
+    document.getElementById(elementId).addEventListener("keydown", function (e) {
+      if (e.keyCode >= 112 && e.keyCode <= 123) return; // F1-F12除外
 
-  // キー設定変更
-  document.getElementById("keyboardA").addEventListener("keydown", function (e) {
-    if (e.keyCode >= 112 && e.keyCode <= 123) return; //F1-F12除外
+      e.preventDefault();
+      document.getElementById(elementId).value = `${e.code}(${e.keyCode})`;
+      window[keyCodeVar] = e.code; // 動的に変数名を設定
+      console.log(`Update ${keyCodeVar}: ${e.code}(${e.keyCode})`);
+      
+      // キー設定をクッキーに保存
+      setCookie(keyCodeVar, e.code, 7);
+    });
+  }
 
-    e.preventDefault();
-    document.getElementById("keyboardA").value = `${e.code}(${e.keyCode})`;
-    keyCodeA = e.code;
-    console.log(`Update Key A:${e.code}(${e.keyCode})`)
-
-  })
-  document.getElementById("keyboardB").addEventListener("keydown", function (e) {
-    if (e.keyCode >= 112 && e.keyCode <= 123) return; //F1-F12除外
-
-    e.preventDefault();
-    document.getElementById("keyboardB").value = `${e.code}(${e.keyCode})`;
-    keyCodeB = e.code;
-    console.log(`Update Key B:${e.code}(${e.keyCode})`)
-  })
 
   // 操作
   //// キーボード
   document.addEventListener('keydown', function (e) {
-    if (!(e.code == keyCodeA || e.code == keyCodeB)) return; // キーチェック
-
+    if (!(e.code == Keycode1 || e.code == Keycode2 || e.code == Keycode3 || e.code == Keycode4)) return; // キーチェック
     // キー 無効化
     e.preventDefault();
-
+    let keynum
+      switch(e.code) {
+      case Keycode1:
+          keynum = 0
+          keyState[0] = true
+          break
+      case Keycode2:
+          keynum = 1
+          keyState[1] = true
+          break
+      case Keycode3:
+          keynum = 2
+          keyState[2] = true
+          break
+      case Keycode4:
+          keynum = 3
+          keyState[3] = true
+          break
+      }
     // 処理実行
-    gameSystem(false)
+    gameSystem(false,keynum)
   });
   //// タッチ
   document.addEventListener("touchstart", function (e) {
@@ -367,50 +449,92 @@
     e.preventDefault();
 
     // 処理実行
-    gameSystem(true)
+    gameSystem(true,Keycode1)
   })
 
-  // ノーツの移動
-  setInterval(() => {
-    // 動画時間表示
+    // キーアップで色戻す
+    window.addEventListener('keyup', (e) => {
+      switch(e.code) {
+      case Keycode1:
+          keynum = 0
+          keyState[0] = false
+          break
+      case Keycode2:
+          keynum = 1
+          keyState[1] = false
+          break
+      case Keycode3:
+          keynum = 2
+          keyState[2] = false
+          break
+      case Keycode4:
+          keynum = 3
+          keyState[3] = false
+          break
+      }
+  })
+
+
+  // アニメーション
+  app.ticker.add((delta) => {
+    const now = isPlayVideo ? videoInfo("getNowTime") : 0;
+    const lead = checkLineY / (speed * 60);
+
+    for (let lane = 0; lane < laneCount; lane++) {
+      const arr = noteData[lane];
+      let idx = spawnedIndex[lane];
+
+      if (!isEdit && isPlayVideo) {
+        while (idx < arr.length && arr[idx] <= now + lead) {
+          spawnNote(lane, now < lead ? (now + lead - arr[idx]) * speed * 60 : 0, idx++);
+        }
+        spawnedIndex[lane] = idx;
+        if(arr[arr.length - 1] <= now - lead - 5){
+          videoInfo("pause")
+        }
+      }
+
+      keyRects[lane]
+        .clear()
+        .beginFill(keyState[lane] ? 0x00ffff : 0x555555)
+        .drawRect(0, 0, app.screen.width / 4, 20)
+        .endFill();
+
+      for (const note of notes[lane]) {
+        if (!isPlayVideo) continue;
+
+        note.y += (isEdit ? -1 : 1) * speed * delta;
+
+        if (!isEdit) {
+          if (note.id === "note" && note.y > checkLineY + 12 * speed) {
+            hits[4]++;
+            scoreUpDate("Miss", 0, 0);
+            currentIndex[lane] = note.index;
+            note.clear().lineStyle(2, 0xffffff, 1).beginFill(0xff0000).drawRect(0, 0, noteWidth - 4, noteHeight).endFill();
+            note.id = "";
+          }
+          if (note.y > deleteLine) removeNote(note, lane);
+        }
+
+        if (isEdit && note.y < 0) {
+          removeNote(note, lane);
+        }
+      }
+    }
+
     if (isVideoLoaded) {
-      document.getElementById("videoTime").textContent = videoInfo("getNowTime") + "/" + videoInfo("getEndTime") + "[sec]";
+      videoTime.textContent = `${videoInfo("getNowTime")}/${videoInfo("getEndTime")}[sec]`;
     }
 
-    // ノーツの移動
-    var lines = svg.children
-    for (var i = elffset; i < lines.length; i++) {
-      // Editモード
-      if (isEdit && isPlayVideo) {
-        var nextPos = parseInt(lines[i].getAttribute("y")) - speed
-        lines[i].setAttribute("y",nextPos)
-        // 枠外削除
-        if (nextPos < 0) {
-          lines[i].remove()
-        }
+    infotext.alpha -= 0.03 * delta;
+  });
 
-        continue;
-      }
-
-
-      if (isPlace && isPlayVideo) { // 設置済みかつ再生中
-        var nextPos = parseInt(lines[i].getAttribute("y")) + speed
-        lines[i].setAttribute("y",nextPos)
-        // checkline越えは赤くする
-        if (nextPos > checkLine + 12 * speed && lines[i].getAttribute("id") == "note") {
-          hits[4]++
-          scoreUpDate("Miss", 0, 0)
-          lines[i].setAttribute("fill", "red")
-          lines[i].removeAttribute("id")
-        }
-        // 枠外削除
-        if (nextPos > deleteLine) {
-          console.log("del")
-          lines[i].remove()
-        }
-      }
+  function removeNote(note,lane) {
+    app.stage.removeChild(note); // 画面から削除
+    if (note.index !== -1) {
+      notes[lane].shift(); // 配列からも削除
     }
-  }, 20);
+  }
 
 
 
@@ -502,7 +626,6 @@
       document.getElementById("jsonData").removeAttribute("disabled")
       document.getElementById("jsonEdit").removeAttribute("disabled")
       // // score
-      isPlace = false
       combo = 0
       maxCombo = 0
       score = 0
@@ -516,30 +639,51 @@
       // シーン
       scene = "waiting"
       // jsonにする
-      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, timing: notesTiming })
+      document.getElementById("jsonData").value = JSON.stringify({ id: movieID, notes1: noteData[0], notes2: noteData[1], notes3: noteData[2], notes4: noteData[3]})
       console.log("Json Export")
     }
     // ノーツ削除
-    var lines = document.getElementById("notesBox").children
-    if (lines.length >= elffset) {
-      for (var i = elffset; i < lines.length; i++) {
-        lines[i].remove()
+    for (let i = 0; i < notes.length; i++) {
+      for (let j = 0; j < notes[i].length; j++) {
+        removeNote(notes[i][j],i)
       }
     }
   }
   //// スコア更新
   function scoreUpDate(text, add, sign) {
-    var add_text = ""
+    let add_text = ""
     if (add > 0) {
       add_text = `+${add} `
     }
 
+    switch (text) {
+      case "Miss":
+        infotext.style.fill = 0xff0000; // 赤
+        break;
+      case "Bad":
+        infotext.style.fill = 0xff9900; // 橙
+        break;
+      case "Good":
+        infotext.style.fill = 0xffff00; // 黄
+        break;
+      case "Great":
+        infotext.style.fill = 0x00ff00; // 緑
+        break;
+      case "Perfect":
+        infotext.style.fill = 0x00ccff; // 青（鮮やか）
+        break;
+      default:
+        infotext.style.fill = 0xffffff; // その他（白）
+        break;
+    }
+
+    infotext.alpha = 1.0;
     if (sign == 1) {// 早すぎ
-      document.getElementById("hits").textContent = `${text} ${add_text}(fast)`
+      infotext.text = `${text} ${add_text}(fast)`
     } else if (sign == 0) {
-      document.getElementById("hits").textContent = `${text} ${add_text}`
+      infotext.text = `${text} ${add_text}`
     } else {// 遅すぎ
-      document.getElementById("hits").textContent = `${text} ${add_text}(late)`
+      infotext.text = `${text} ${add_text}(late)`
     }
 
     if (add == 0) {
@@ -549,78 +693,114 @@
       if (combo > maxCombo) maxCombo = combo;
       score += Math.round(add * Math.sqrt(combo))
     }
+    
 
 
     // スコア更新
-    var acc = (hits[0] * 100 + hits[1] * 100 + hits[2] * 75 + hits[3] * 50) / (hits[0] + hits[1] + hits[2] + hits[3] + hits[4])
+    let acc = (hits[0] * 100 + hits[1] * 100 + hits[2] * 75 + hits[3] * 50) / (hits[0] + hits[1] + hits[2] + hits[3] + hits[4])
     acc = Math.round(acc * 100) / 100
     if (isNaN(acc)) acc = 0
     document.getElementById("score").value = `Score:${score.toLocaleString()}\nCombo:${combo} Max:${maxCombo}\nPerfect:${hits[0]} Great:${hits[1]} Good:${hits[2]} Bad:${hits[3]} Miss:${hits[4]} Acc:${acc}%`
 
   }
-  //// スピード更新
-  function speedUpDate() {
-    speed = parseInt(document.getElementById("speed").value)
-    document.getElementById("speedValue").textContent = speed + "px"
+
+  // クッキーを設定する関数
+  function setCookie(name, value, days) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000)); // 有効期限を設定（例: 7日後）
+    document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+    console.log(`Cookie Set: ${name}=${value}`, document.cookie);
   }
-  //// タイミング更新
-  function timingUpDate() {
-    var timingOffset = parseInt(document.getElementById("timing").value)
-    checkLine = 600 - timingOffset
-    document.getElementById("checkLine").setAttribute("y",checkLine) 
-    document.getElementById("timingValue").textContent = timingOffset
-  }
-  //// 音楽Volume更新
-  function musicUpDate() {
-    var musicVolume = parseInt(document.getElementById("music").value)
-    if (isVideoLoaded) {
-      videoInfo("volume", musicVolume)
-    } else {
-      musicVolume = 100
-      document.getElementById("music").value = musicVolume
+
+  // クッキーを取得する関数
+  function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i].trim();
+      if (c.indexOf(nameEQ) === 0) {
+        return c.substring(nameEQ.length, c.length);
+      }
     }
-    document.getElementById("musicValue").textContent = musicVolume
+    return null;
   }
-  //// 効果音Volume更新
+
+  // クッキーを削除する関数
+  function deleteCookie(name) {
+    setCookie(name, "", -1); // 有効期限を過去に設定して削除
+  }
+
+  // スピード更新関数
+  function speedUpDate() {
+    speed = parseInt(document.getElementById("speed").value);
+    document.getElementById("speedValue").textContent = speed + "px";
+    setCookie("game_speed", speed, 7); // スピードをクッキーに保存
+  }
+
+  // タイミング更新関数
+  function timingUpDate() {
+    let timingOffset = parseInt(document.getElementById("timing").value);
+    checkLine.y = 800 - timingOffset;
+    for (let i = 0; i < keyRects.length; i++) {
+      keyRects[i].y = checkLine.y;  // 各 keyRect 要素の y 座標を更新
+    }
+    document.getElementById("timingValue").textContent = timingOffset;
+    setCookie("game_timing", timingOffset, 7); // タイミングをクッキーに保存
+  }
+
+  // 音楽Volume更新関数
+  function musicUpDate() {
+    let musicVolume = parseInt(document.getElementById("music").value);
+    if (isVideoLoaded) {
+      videoInfo("volume", musicVolume);
+    } else {
+      musicVolume = 100;
+      document.getElementById("music").value = musicVolume;
+    }
+    document.getElementById("musicValue").textContent = musicVolume;
+    setCookie("game_music_volume", musicVolume, 7); // 音楽ボリュームをクッキーに保存
+  }
+
+  // 効果音Volume更新関数
   function effectUpDate() {
-    var effectVolume = parseInt(document.getElementById("effect").value)
-    document.getElementById("sound").volume = effectVolume / 100
-    document.getElementById("effectValue").textContent = effectVolume
+    let effectVolume = parseInt(document.getElementById("effect").value);
+    document.getElementById("sound").volume = effectVolume / 100;
+    document.getElementById("effectValue").textContent = effectVolume;
+    setCookie("game_effect_volume", effectVolume, 7); // 効果音ボリュームをクッキーに保存
   }
   //// シーンごとに変更
-  function gameSystem(isTouch) {
+  function gameSystem(isTouch,keynum) {
+    if (!isTouch) {
+      const sound = document.getElementById("sound");
+      if (!sound.paused) sound.pause();
+      sound.currentTime = 0;
+
+      sound.play().catch(e => {
+        return
+      });
+    }
+
     // シーンで挙動変更
     switch (scene) {
       // 待機中
       case "waiting":
         if (!isVideoLoaded) return; // 読み込みチェック
 
-        // ノーツ配置
-        if (!isEdit) {
-          for (var i = 0; i < data.timing.length; i++) {
-            var y = data.timing[i] * (speed * 1 / 0.02) * -1 + defaultCheckLine // -(目標時間 * 移動速度) + バー座標
-            svg.innerHTML += `<rect id="note" class="notes" x="0" y="${y}" width="100%" height="20" fill="blue" id="line"></rect>`
+        let countdown = 4;
+        let countdownInterval = setInterval(() => {
+          countdown--;
+          infotext.text = countdown.toString(); // テキストを更新
+          infotext.alpha = 1;
+          console.log(countdown)
+
+          if (countdown === 0) {
+            clearInterval(countdownInterval); // カウントダウン終了
+            infotext.text = ""; // テキストを空にする
+            // 動画の再生位置を戻して再生を開始（仮定の関数）
+            videoInfo("seek", 0);
+            videoInfo("play");
           }
-          isPlace = true
-          console.log("Notes Placed")
-        }
-        // 3
-        document.getElementById("info").textContent = "3"
-        // 2
-        setTimeout(function () {
-          document.getElementById("info").textContent = "2"
-        }, 1000)
-        // 1
-        setTimeout(function () {
-          document.getElementById("info").textContent = "1"
-        }, 2000)
-        // 0
-        setTimeout(function () {
-          document.getElementById("info").textContent = ""
-          // 念のためスクロール
-          videoInfo("seek", 0)
-          videoInfo("play")
-        }, 3000)
+        }, 1000);
 
         // モードでテキストを変更
         if (isEdit) {
@@ -634,32 +814,22 @@
         return;
       // プレイ中
       case "play":
-        if (!isTouch) {
-          document.getElementById("sound").pause()
-          document.getElementById("sound").currentTime = 0
-          document.getElementById("sound").play()
-        }
 
         // 数値だし
-        var lines = svg.children
-        if (lines.length < elffset) return;
-        var note
-        var noteY = 0
-        for (var i = elffset;i < lines.length;i++) {
-          var dummy = lines[i]
-          if (dummy.getAttribute("id") == "note" && parseInt(dummy.getAttribute("y")) > noteY) {
-            note = dummy
-            noteY = parseInt(dummy.getAttribute("y"))
-          }
-        }
-        if (note == undefined) return;
-        console.log(note)
-        var timelag = checkLine - noteY
-        var timing = Math.abs(timelag)
-        var sign = Math.sign(timelag)
+        let note
+        let noteY = 0
+        let laneNotes = notes[keynum]
+        note = laneNotes[0]
+        if(note == undefined) return
+        noteY = note.y
+    
+        let timelag = Math.round(checkLineY - noteY)
+        let timing = Math.abs(timelag)
+        console.log(timing)
+        let sign = Math.sign(timelag)
 
         // スコア計算
-        if (timing == 0) { // Perfect
+        if (timing < speed) { // Perfect
           hits[0]++
           scoreUpDate("Perfect", 500, sign)
         } else if (timing < 3 * speed) { // Great
@@ -677,10 +847,14 @@
         } else { // その他除外
           return;
         }
-        // 判定に引っかかったら削除
-        note.remove()
 
+        // 判定に引っかかったら削除
+
+        currentIndex[keynum] = note.index
+        removeNote(note,keynum)
         return;
+
+
       // 編集中
       case "edit":
         if (videoInfo("getNowTime") < 0.5) return;
@@ -688,13 +862,84 @@
         if (!isPlayVideo) return;
 
         // 追加
-        svg.innerHTML += `<rect class="notes" x="0" y="${checkLine}" width="100%" height="20" fill="blue" id="line"></rect>`
-        var time = videoInfo("getNowTime")
-        notesTiming.push(time)
-        console.log(`Append Notes: ${time}`)
+        spawnNote(keynum,checkLineY)
+        let time = videoInfo("getNowTime")
+        switch(keynum) {
+          case 0:
+            noteData[0].push(time)
+            break;
+          case 1:
+            noteData[1].push(time)
+            break;
+          case 2:
+            noteData[2].push(time)
+            break;
+          case 3:
+            noteData[3].push(time)
+            break;
+        }
+        console.log(`Append Notes: keynum:${keynum},${time}`)
 
         return;
     }
+  }
+
+  window.onload = function() {
+    const savedSpeed = getCookie("game_speed");
+    const savedTiming = getCookie("game_timing");
+    const savedMusicVolume = getCookie("game_music_volume");
+    const savedEffectVolume = getCookie("game_effect_volume");
+    const key1 = getCookie("Keycode1");
+    const key2 = getCookie("Keycode2");
+    const key3 = getCookie("Keycode3");
+    const key4 = getCookie("Keycode4");
+
+    if (savedSpeed !== null) {
+      document.getElementById("speed").value = savedSpeed;
+      document.getElementById("speedValue").textContent = savedSpeed + "px";
+    }
+
+    if (savedTiming !== null) {
+      document.getElementById("timing").value = savedTiming;
+      document.getElementById("timingValue").textContent = savedTiming;
+      checkLine.y = 800 - savedTiming;
+      for (let i = 0; i < keyRects.length; i++) {
+        keyRects[i].y = checkLine.y;
+      }
+    }
+
+    if (savedMusicVolume !== null) {
+      document.getElementById("music").value = savedMusicVolume;
+      document.getElementById("musicValue").textContent = savedMusicVolume;
+    }
+
+    if (savedEffectVolume !== null) {
+      document.getElementById("effect").value = savedEffectVolume;
+      document.getElementById("effectValue").textContent = savedEffectVolume;
+      document.getElementById("sound").volume = savedEffectVolume / 100;
+    }
+
+    if (key1) {
+      document.getElementById("keyboard1").value = `${key1}(${key1.charCodeAt(0)})`;
+      Keycode1 = key1;
+    }
+    if (key2) {
+      document.getElementById("keyboard2").value = `${key2}(${key2.charCodeAt(0)})`;
+      Keycode2 = key2;
+    }
+    if (key3) {
+      document.getElementById("keyboard3").value = `${key3}(${key3.charCodeAt(0)})`;
+      Keycode3 = key3;
+    }
+    if (key4) {
+      document.getElementById("keyboard4").value = `${key4}(${key4.charCodeAt(0)})`;
+      Keycode4 = key4;
+    }
+
+    setupKeyListener("keyboard1", "Keycode1");
+    setupKeyListener("keyboard2", "Keycode2");
+    setupKeyListener("keyboard3", "Keycode3");
+    setupKeyListener("keyboard4", "Keycode4");
   }
 </script>
 
